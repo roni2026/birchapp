@@ -273,12 +273,67 @@
   min-height: 100dvh;
   max-width: 680px;
   margin: auto;
+  position: relative;
   background: #f4f6f5;
   box-shadow: 0 0 70px #0d1a2d18;
+  overscroll-behavior-y: contain;
 }
 .screen {
   min-height: 100dvh;
   padding-bottom: 78px;
+  position: relative;
+  z-index: 1;
+  background: #f4f6f5;
+  will-change: transform;
+}
+.pull-refresh {
+  position: fixed;
+  z-index: 20;
+  top: 5px;
+  left: 50%;
+  min-width: 130px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid #dbe4e5;
+  border-radius: 20px;
+  color: #53646f;
+  background: #fffffff2;
+  box-shadow: 0 7px 22px #0d1a2d24;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+  backdrop-filter: blur(12px);
+}
+.pull-refresh.visible {
+  opacity: 1;
+}
+.pull-refresh small {
+  font-size: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.refresh-spinner {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--aqua);
+  background: #edf6f4;
+}
+.is-refreshing .refresh-spinner svg {
+  animation: refresh-spin 0.75s linear infinite;
+}
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 header {
   height: 87px;
@@ -1663,6 +1718,11 @@ header {
 :root[data-theme="dark"] .shell > nav {
   color: #e8edef;
   background: #14202d;
+}
+:root[data-theme="dark"] .pull-refresh {
+  color: #dbe4e7;
+  background: #14202df2;
+  border-color: #334150;
 }
 :root[data-theme="dark"] .column-search,
 :root[data-theme="dark"] .column-search > select,

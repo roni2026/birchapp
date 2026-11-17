@@ -1,4 +1,13 @@
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  ReactNode,
+  TouchEvent as ReactTouchEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type Tab = "requests" | "orders" | "orderList" | "items" | "settings" | "inbox" | "more";
 type IconName =
@@ -1695,6 +1704,9 @@ function Shell({
   setTheme: (theme: "light" | "dark") => void;
 }) {
   const [tab, setTab] = useState<Tab>("requests");
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const touchStart = useRef<number | null>(null);
   useEffect(() => {
     const timeout = window.setTimeout(exit, 5 * 60 * 1000);
     return () => window.clearTimeout(timeout);
@@ -1715,9 +1727,75 @@ function Shell({
     ["items", "Items", "box"],
     ["settings", "Settings", "settings"],
   ];
+  const refresh = useCallback(() => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setPullDistance(58);
+    window.dispatchEvent(
+      new CustomEvent("birchstreet:refresh", {
+        detail: { section: tab },
+      }),
+    );
+    window.setTimeout(() => {
+      setRefreshing(false);
+      setPullDistance(0);
+    }, 1100);
+  }, [refreshing, tab]);
+
+  function handleTouchStart(event: ReactTouchEvent<HTMLElement>) {
+    if (window.scrollY <= 0 && !refreshing) touchStart.current = event.touches[0].clientY;
+  }
+
+  function handleTouchMove(event: ReactTouchEvent<HTMLElement>) {
+    if (touchStart.current === null || refreshing) return;
+    const distance = event.touches[0].clientY - touchStart.current;
+    if (distance <= 0) {
+      setPullDistance(0);
+      return;
+    }
+    event.preventDefault();
+    setPullDistance(Math.min(92, distance * 0.48));
+  }
+
+  function handleTouchEnd() {
+    touchStart.current = null;
+    if (pullDistance >= 58) refresh();
+    else setPullDistance(0);
+  }
+
   return (
-    <main className="shell">
-      <div className="screen">{screens[tab]}</div>
+    <main
+      className={`shell ${refreshing ? "is-refreshing" : ""}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div
+        className={`pull-refresh ${pullDistance > 0 ? "visible" : ""}`}
+        style={{ transform: `translate(-50%, ${Math.max(-42, pullDistance - 44)}px)` }}
+        aria-live="polite"
+      >
+        <span className="refresh-spinner">
+          <Icon name="refresh" size={19} />
+        </span>
+        <small>
+          {refreshing
+            ? "Refreshing…"
+            : pullDistance >= 58
+              ? "Release to refresh"
+              : "Pull to refresh"}
+        </small>
+      </div>
+      <div
+        className="screen"
+        style={{
+          transform: `translateY(${pullDistance}px)`,
+          transition: touchStart.current === null || refreshing ? "transform .28s ease" : "none",
+        }}
+      >
+        {screens[tab]}
+      </div>
       <nav>
         {nav.map((n) => (
           <button className={tab === n[0] ? "active" : ""} onClick={() => setTab(n[0])} key={n[0]}>
