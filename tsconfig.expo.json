@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "moduleSuffixes": [".native", ""]
+  },
+  "include": ["App.tsx", "native/**/*.ts", "native/**/*.tsx"]
+}

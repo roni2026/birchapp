@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Outrigger Birchstreet",
+    "slug": "outrigger-birchstreet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/outrigger-logo.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "platforms": ["android"],
+    "android": {
+      "package": "com.roni2026.outriggerbirchstreet",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./public/outrigger-logo.png",
+        "backgroundColor": "#0D1A2D"
+      },
+      "permissions": ["android.permission.INTERNET"],
+      "usesCleartextTraffic": false
+    },
+    "assetBundlePatterns": ["**/*"],
+    "extra": {
+      "subscriberId": "458"
+    }
+  }
+}

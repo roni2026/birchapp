@@ -598,23 +598,28 @@ function PoDetail({ record, close }: { record: (typeof orders)[number]; close: (
 function Login({ enter }: { enter: () => void }) {
   const saved = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("outrigger-credentials") || "null");
+      return JSON.parse(localStorage.getItem("outrigger-credentials-v2") || "null");
     } catch {
       return null;
     }
   }, []);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  const [login, setLogin] = useState(saved?.login || "test");
-  const [password, setPassword] = useState(saved?.password || "test");
+  const [login, setLogin] = useState(saved?.login || "");
+  const [password, setPassword] = useState(saved?.password || "");
   const [remember, setRemember] = useState(Boolean(saved));
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (login !== "test" || password !== "test")
-      return setError("Use test as both the Login ID and password.");
+    if (!login.trim() || !password)
+      return setError("Enter your BirchStreet Login ID and password.");
     if (remember)
-      localStorage.setItem("outrigger-credentials", JSON.stringify({ login, password }));
-    else localStorage.removeItem("outrigger-credentials");
+      localStorage.setItem("outrigger-credentials-v2", JSON.stringify({ login, password }));
+    else localStorage.removeItem("outrigger-credentials-v2");
+    window.dispatchEvent(
+      new CustomEvent("birchstreet:login", {
+        detail: { loginID: login.trim(), password, subscriberID: "458" },
+      }),
+    );
     setError("");
     enter();
   }
