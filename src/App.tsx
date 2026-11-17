@@ -1340,20 +1340,12 @@ function OrderList() {
               }}
               disabled={!entryOptions.length}
             >
-              <option value="">
-                {entryOptions.length ? "Select Entry" : "Loading entries from BirchStreet…"}
-              </option>
+              <option value="">Select Entry</option>
               {entryOptions.map((value) => (
                 <option key={value}>{value}</option>
               ))}
             </select>
           </label>
-          {!entryOptions.length && (
-            <div className="entry-loading">
-              <span className="mini-spinner" />
-              Loading real entries from BirchStreet
-            </div>
-          )}
         </section>
         <FilterTools
           query={query}

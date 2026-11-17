@@ -1162,22 +1162,6 @@ header {
   font-size: 7px;
   margin-top: 7px;
 }
-.entry-loading {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #718584;
-  font-size: 7px;
-  font-weight: 700;
-  margin-top: 7px;
-}
-.entry-loading .mini-spinner {
-  width: 11px;
-  height: 11px;
-  color: var(--aqua);
-  border-color: #4ba69e42;
-  border-top-color: var(--aqua);
-}
 .stack {
   display: flex;
   flex-direction: column;
