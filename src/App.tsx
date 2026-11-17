@@ -144,7 +144,6 @@ function Pill({ status, tone = "blue" }: { status: string; tone?: string }) {
 }
 
 function Login({ enter }: { enter: () => void }) {
-  const [subscriber, setSubscriber] = useState(true);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   function submit(e: FormEvent<HTMLFormElement>) {
@@ -172,19 +171,17 @@ function Login({ enter }: { enter: () => void }) {
           <p>Sign in to manage purchasing and inventory.</p>
         </div>
         <form onSubmit={submit}>
-          <label>
-            <span>Portal server</span>
-            <div className="field">
+          <div className="auto-config">
+            <span>
               <Icon name="server" />
-              <select aria-label="Portal server">
-                <option>app01</option>
-                <option>app02</option>
-                <option>app03</option>
-                <option>app04</option>
-              </select>
-              <em>.birchstreetsystems.com</em>
+            </span>
+            <div>
+              <b>Automatic portal connection</b>
+              <small>Server detected automatically · Subscriber 458</small>
             </div>
-          </label>
+            <Icon name="check" size={17} />
+          </div>
+          <input type="hidden" name="subscriberId" value="458" />
           <label>
             <span>Login ID</span>
             <div className="field">
@@ -207,26 +204,7 @@ function Login({ enter }: { enter: () => void }) {
               </button>
             </div>
           </label>
-          {subscriber && (
-            <label>
-              <span>
-                Subscriber ID <small>Optional</small>
-              </span>
-              <div className="field">
-                <Icon name="building" />
-                <input inputMode="numeric" placeholder="e.g. 458" />
-              </div>
-            </label>
-          )}
           <div className="form-options">
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={subscriber}
-                onChange={(e) => setSubscriber(e.target.checked)}
-              />
-              <span>Portal asks for Subscriber ID</span>
-            </label>
             <button type="button">Forgot password?</button>
           </div>
           {error && <p className="error">{error}</p>}
@@ -589,7 +567,7 @@ function More({ exit }: { exit: () => void }) {
     ["box", "Inventory", "Stock, transfers and adjustments"],
     ["sheet", "Order sheets", "Build and submit orders"],
     ["chart", "Reports", "Inventory and receiving reports"],
-    ["settings", "Portal settings", "app01.birchstreetsystems.com"],
+    ["settings", "Portal settings", "Server detected automatically · Subscriber 458"],
     ["help", "Help & support", "Guides and account help"],
   ];
   return (
