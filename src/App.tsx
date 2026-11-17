@@ -1,6 +1,6 @@
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
-type Tab = "home" | "requests" | "orders" | "orderList" | "items" | "inbox" | "more";
+type Tab = "requests" | "orders" | "orderList" | "items" | "settings" | "inbox" | "more";
 type IconName =
   | "home"
   | "file"
@@ -98,6 +98,7 @@ const reqs = [
     status: "Approval pending",
     tone: "amber",
     date: "2026-11-17",
+    delivery: "2026-11-18",
     purchaseType: "General",
   },
   {
@@ -108,6 +109,7 @@ const reqs = [
     status: "Approved",
     tone: "green",
     date: "2026-11-16",
+    delivery: "2026-11-17",
     purchaseType: "Food",
   },
   {
@@ -118,6 +120,7 @@ const reqs = [
     status: "In process",
     tone: "blue",
     date: "2026-11-14",
+    delivery: "2026-11-16",
     purchaseType: "General",
   },
 ];
@@ -367,14 +370,145 @@ function Pill({ status, tone = "blue" }: { status: string; tone?: string }) {
   return <span className={`pill ${tone}`}>{status}</span>;
 }
 
+function formatDate(value: string) {
+  return new Date(value + "T00:00:00").toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function triggerPrintWithDetails(type: "REQ" | "PO", documentNumber: string) {
+  window.dispatchEvent(
+    new CustomEvent("birchstreet:print-with-details", {
+      detail: { type, documentNumber, action: "Print w/Details" },
+    }),
+  );
+}
+
+function DetailShell({
+  title,
+  status,
+  tone,
+  close,
+  children,
+}: {
+  title: string;
+  status: string;
+  tone: string;
+  close: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <Header title="Print w/ Details" />
+      <div className="content detail-page">
+        <button className="back-button" onClick={close}>
+          <Icon name="next" size={18} /> Back to results
+        </button>
+        <section className="detail-card">
+          <div className="detail-title">
+            <div>
+              <small>DOCUMENT</small>
+              <h2>{title}</h2>
+            </div>
+            <Pill status={status} tone={tone} />
+          </div>
+          {children}
+        </section>
+      </div>
+    </>
+  );
+}
+
+function ReqDetail({ record, close }: { record: (typeof reqs)[number]; close: () => void }) {
+  return (
+    <DetailShell title={record.id} status={record.status} tone={record.tone} close={close}>
+      <h3>
+        {record.purchaseType} - {record.title}
+      </h3>
+      <div className="detail-grid">
+        <span>
+          <small>REQ DATE</small>
+          <b>{formatDate(record.date)}</b>
+        </span>
+        <span>
+          <small>DELIVERY DATE</small>
+          <b>{formatDate(record.delivery)}</b>
+        </span>
+        <span>
+          <small>PURCHASE TYPE</small>
+          <b>{record.purchaseType}</b>
+        </span>
+        <span>
+          <small>DEPARTMENT</small>
+          <b>{record.area}</b>
+        </span>
+      </div>
+      <div className="detail-total">
+        <span>Home currency total</span>
+        <b>{record.amount}</b>
+      </div>
+    </DetailShell>
+  );
+}
+
+function PoDetail({ record, close }: { record: (typeof orders)[number]; close: () => void }) {
+  return (
+    <DetailShell
+      title={record.id}
+      status={record.status}
+      tone={record.status === "Accepted" ? "green" : "blue"}
+      close={close}
+    >
+      <h3>{record.subject}</h3>
+      <p className="detail-supplier">{record.supplier}</p>
+      <div className="detail-grid">
+        <span>
+          <small>PO DATE</small>
+          <b>{formatDate(record.date)}</b>
+        </span>
+        <span>
+          <small>REQ DELIVERY</small>
+          <b>{formatDate(record.delivery)}</b>
+        </span>
+        <span>
+          <small>PO TYPE</small>
+          <b>{record.poType}</b>
+        </span>
+        <span>
+          <small>SUPPLIER</small>
+          <b>{record.supplier}</b>
+        </span>
+      </div>
+      <div className="detail-total">
+        <span>PO total</span>
+        <b>{record.amount}</b>
+      </div>
+    </DetailShell>
+  );
+}
+
 function Login({ enter }: { enter: () => void }) {
+  const saved = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("outrigger-credentials") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [login, setLogin] = useState(saved?.login || "test");
+  const [password, setPassword] = useState(saved?.password || "test");
+  const [remember, setRemember] = useState(Boolean(saved));
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    if (data.get("login") !== "test" || data.get("password") !== "test")
+    if (login !== "test" || password !== "test")
       return setError("Use test as both the Login ID and password.");
+    if (remember)
+      localStorage.setItem("outrigger-credentials", JSON.stringify({ login, password }));
+    else localStorage.removeItem("outrigger-credentials");
     setError("");
     enter();
   }
@@ -413,7 +547,8 @@ function Login({ enter }: { enter: () => void }) {
               <input
                 name="login"
                 autoComplete="username"
-                defaultValue="test"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
                 placeholder="Enter your Login ID"
               />
             </div>
@@ -426,7 +561,8 @@ function Login({ enter }: { enter: () => void }) {
                 name="password"
                 type={show ? "text" : "password"}
                 autoComplete="current-password"
-                defaultValue="test"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
               <button type="button" onClick={() => setShow(!show)} aria-label="Show password">
@@ -434,13 +570,21 @@ function Login({ enter }: { enter: () => void }) {
               </button>
             </div>
           </label>
+          <label className="remember-login">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span>Save my username and password on this device</span>
+          </label>
           {error && <p className="error">{error}</p>}
           <button className="sign-in">
             Sign in securely <Icon name="next" />
           </button>
         </form>
         <p className="secure">
-          <Icon name="shield" size={17} /> Your credentials stay in the secure portal session.
+          <Icon name="shield" size={17} /> Saved credentials remain on this device only.
         </p>
       </section>
       <p className="property">Outrigger Maldives Maafushivaru Resort</p>
@@ -610,6 +754,8 @@ type FilterOption = { value: string; label: string };
 function FilterTools({
   query,
   setQuery,
+  onSearch,
+  searchDisabled = false,
   column,
   setColumn,
   columns,
@@ -626,6 +772,8 @@ function FilterTools({
 }: {
   query: string;
   setQuery: (value: string) => void;
+  onSearch: () => void;
+  searchDisabled?: boolean;
   column: string;
   setColumn: (value: string) => void;
   columns: FilterOption[];
@@ -661,7 +809,16 @@ function FilterTools({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Enter Search Value"
+            disabled={searchDisabled}
           />
+          <button
+            className="search-submit"
+            onClick={onSearch}
+            disabled={searchDisabled}
+            aria-label="Search"
+          >
+            Search
+          </button>
         </div>
       </div>
       {(setFrom || extra) && (
@@ -735,31 +892,35 @@ function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
 
 function Requests() {
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("REQ number");
-  const [view, setView] = useState("All My REQ's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selected, setSelected] = useState<(typeof reqs)[number] | null>(null);
   const list = useMemo(
     () =>
       reqs
-        .filter(
-          (record) =>
-            matchesColumn(record, column, query) &&
-            (!view.includes("In Process") || record.status === "In process") &&
-            (!view.includes("Approved") || record.status === "Approved"),
-        )
+        .filter((record) => matchesColumn(record, column, appliedQuery))
+        .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, view, sort, direction],
+    [appliedQuery, column, selectedDate, sort, direction],
   );
+  if (selected) return <ReqDetail record={selected} close={() => setSelected(null)} />;
   return (
     <>
       <Header title="Requisitions" />
       <div className="content">
+        <div className="fixed-view">
+          <span>REQ view</span>
+          <b>All My REQ's</b>
+        </div>
         <FilterTools
           query={query}
           setQuery={setQuery}
+          onSearch={() => setAppliedQuery(query)}
           column={column}
           setColumn={setColumn}
           columns={reqSearchColumns.map((label) => ({ value: label, label }))}
@@ -777,19 +938,26 @@ function Requests() {
           setDirection={setDirection}
           extra={
             <label>
-              <span>REQ view</span>
-              <select value={view} onChange={(e) => setView(e.target.value)}>
-                {reqViews.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
+              <span>REQ date</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
             </label>
           }
         />
         <ListHead text={`${list.length} requisitions`} />
         <div className="stack">
           {list.map((r) => (
-            <Doc key={r.id} {...r} />
+            <Doc
+              key={r.id}
+              {...r}
+              onOpen={() => {
+                triggerPrintWithDetails("REQ", r.id);
+                setSelected(r);
+              }}
+            />
           ))}
           {!list.length && (
             <div className="empty">
@@ -799,9 +967,6 @@ function Requests() {
             </div>
           )}
         </div>
-        <button className="fab" aria-label="Create requisition">
-          <Icon name="plus" />
-        </button>
       </div>
     </>
   );
@@ -816,62 +981,71 @@ function ListHead({ text }: { text: string }) {
     </div>
   );
 }
-function Doc({ id, title, area, amount, status, tone, date }: (typeof reqs)[number]) {
+function Doc({
+  id,
+  title,
+  purchaseType,
+  status,
+  tone,
+  date,
+  delivery,
+  onOpen,
+}: (typeof reqs)[number] & { onOpen: () => void }) {
   return (
-    <article className="doc">
+    <button className="doc result-card" onClick={onOpen}>
       <div>
         <small>{id}</small>
         <Pill status={status} tone={tone} />
       </div>
-      <h3>{title}</h3>
-      <p>
-        <span>
-          <Icon name="building" size={14} /> {area}
-        </span>
-        <span>
-          {new Date(date + "T00:00:00").toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })}
-        </span>
-      </p>
+      <h3>
+        {purchaseType} - {title}
+      </h3>
       <footer>
-        <small>Home currency</small>
-        <b>{amount}</b>
+        <span>
+          <small>REQ DATE</small>
+          <b>{formatDate(date)}</b>
+        </span>
+        <span>
+          <small>DELIVERY DATE</small>
+          <b>{formatDate(delivery)}</b>
+        </span>
         <Icon name="next" />
       </footer>
-    </article>
+    </button>
   );
 }
 
 function Orders() {
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("PO number");
-  const [view, setView] = useState("My Last 30 Days PO's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selected, setSelected] = useState<(typeof orders)[number] | null>(null);
   const list = useMemo(
     () =>
       orders
-        .filter(
-          (record) =>
-            matchesColumn(record, column, query) &&
-            (!view.includes("Accepted") || record.status === "Accepted") &&
-            (!view.includes("In Process") || record.status === "Processing"),
-        )
+        .filter((record) => matchesColumn(record, column, appliedQuery))
+        .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, view, sort, direction],
+    [appliedQuery, column, selectedDate, sort, direction],
   );
+  if (selected) return <PoDetail record={selected} close={() => setSelected(null)} />;
   return (
     <>
       <Header title="Purchase orders" />
       <div className="content">
+        <div className="fixed-view">
+          <span>PO view</span>
+          <b>All PO's</b>
+        </div>
         <FilterTools
           query={query}
           setQuery={setQuery}
+          onSearch={() => setAppliedQuery(query)}
           column={column}
           setColumn={setColumn}
           columns={poSearchColumns.map((label) => ({ value: label, label }))}
@@ -888,31 +1062,49 @@ function Orders() {
           setDirection={setDirection}
           extra={
             <label>
-              <span>PO view</span>
-              <select value={view} onChange={(e) => setView(e.target.value)}>
-                {poViews.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
+              <span>PO date</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
             </label>
           }
         />
         <ListHead text={`${list.length} purchase orders`} />
         <div className="stack">
           {list.map((o) => (
-            <article className="doc" key={o.id}>
+            <button
+              className="doc result-card"
+              key={o.id}
+              onClick={() => {
+                triggerPrintWithDetails("PO", o.id);
+                setSelected(o);
+              }}
+            >
               <div>
                 <small>{o.id}</small>
                 <Pill status={o.status} tone={o.status === "Accepted" ? "green" : "blue"} />
               </div>
-              <h3>{o.subject}</h3>
-              <p>{o.supplier}</p>
+              <h3>
+                {o.subject} / {o.supplier}
+              </h3>
               <footer>
-                <small>{o.date.split("-").reverse().join("/")}</small>
-                <b>{o.amount}</b>
+                <span>
+                  <small>PO DATE</small>
+                  <b>{formatDate(o.date)}</b>
+                </span>
+                <span>
+                  <small>REQ DELIVERY</small>
+                  <b>{formatDate(o.delivery)}</b>
+                </span>
+                <span>
+                  <small>PO TOTAL</small>
+                  <b>{o.amount}</b>
+                </span>
                 <Icon name="next" />
               </footer>
-            </article>
+            </button>
           ))}
         </div>
       </div>
@@ -922,10 +1114,10 @@ function Orders() {
 
 function OrderList() {
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("Part #");
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
-  const [location, setLocation] = useState("");
   const [entry, setEntry] = useState("");
   const [parValues, setParValues] = useState(false);
   const [showOnHand, setShowOnHand] = useState(false);
@@ -934,12 +1126,13 @@ function OrderList() {
       orderRows
         .filter(
           (record) =>
-            matchesColumn(record, column, query) && (!location || record.location === location),
+            Boolean(entry && appliedQuery.trim()) && matchesColumn(record, column, appliedQuery),
         )
+        .filter((record) => !entry || record.location === entry)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, location, sort, direction],
+    [appliedQuery, column, entry, sort, direction],
   );
   return (
     <>
@@ -948,6 +1141,8 @@ function OrderList() {
         <FilterTools
           query={query}
           setQuery={setQuery}
+          onSearch={() => setAppliedQuery(query)}
+          searchDisabled={!entry}
           column={column}
           setColumn={setColumn}
           columns={[
@@ -976,14 +1171,15 @@ function OrderList() {
             <>
               <label>
                 <span>Order Sheet</span>
-                <select value={entry} onChange={(e) => setEntry(e.target.value)}>
+                <select
+                  value={entry}
+                  onChange={(e) => {
+                    setEntry(e.target.value);
+                    setQuery("");
+                    setAppliedQuery("");
+                  }}
+                >
                   <option value="">Select Entry</option>
-                </select>
-              </label>
-              <label>
-                <span>Location filter</span>
-                <select value={location} onChange={(e) => setLocation(e.target.value)}>
-                  <option value="">Select Locations</option>
                   {[...new Set(orderRows.map((item) => item.location))].map((value) => (
                     <option key={value}>{value}</option>
                   ))}
@@ -1008,6 +1204,12 @@ function OrderList() {
             </>
           }
         />
+        {!entry && (
+          <p className="order-instruction">Select the appropriate store from Select Entry first.</p>
+        )}
+        {entry && !appliedQuery && (
+          <p className="order-instruction">Enter a Search Value, then tap Search.</p>
+        )}
         <div className="action-strip">
           {["Create REQ", "Add to REQ", "Clear all qty", "Item Search", "Add Item", "More"].map(
             (action) => (
@@ -1063,17 +1265,18 @@ function OrderList() {
 
 function ItemList() {
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("Part #");
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
   const list = useMemo(
     () =>
       itemRows
-        .filter((record) => matchesColumn(record, column, query))
+        .filter((record) => matchesColumn(record, column, appliedQuery))
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, sort, direction],
+    [appliedQuery, column, sort, direction],
   );
   return (
     <>
@@ -1082,6 +1285,7 @@ function ItemList() {
         <FilterTools
           query={query}
           setQuery={setQuery}
+          onSearch={() => setAppliedQuery(query)}
           column={column}
           setColumn={setColumn}
           columns={[
@@ -1254,23 +1458,95 @@ function More({ exit }: { exit: () => void }) {
   );
 }
 
-function Shell({ exit }: { exit: () => void }) {
-  const [tab, setTab] = useState<Tab>("home");
+function Settings({
+  exit,
+  theme,
+  setTheme,
+}: {
+  exit: () => void;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
+}) {
+  return (
+    <>
+      <Header title="Settings" />
+      <div className="content">
+        <section className="profile">
+          <Logo size={58} />
+          <div>
+            <b>Shibumon A. Bhaskaran</b>
+            <span>Marketplace 458 / 2754</span>
+            <small>Maafushivaru Resort</small>
+          </div>
+        </section>
+        <section className="settings-card">
+          <div>
+            <span className="settings-icon">
+              <Icon name="settings" />
+            </span>
+            <div>
+              <b>Appearance</b>
+              <small>Choose your app theme</small>
+            </div>
+          </div>
+          <div className="theme-choice">
+            <button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>
+              Light
+            </button>
+            <button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>
+              Dark
+            </button>
+          </div>
+        </section>
+        <section className="settings-card session-setting">
+          <div>
+            <span className="settings-icon">
+              <Icon name="lock" />
+            </span>
+            <div>
+              <b>Session security</b>
+              <small>Automatically signs out after 5 minutes</small>
+            </div>
+          </div>
+        </section>
+        <button className="exit" onClick={exit}>
+          <Icon name="logout" /> Log out
+        </button>
+        <p className="version">Outrigger Birchstreet · Subscriber 458</p>
+      </div>
+    </>
+  );
+}
+
+function Shell({
+  exit,
+  theme,
+  setTheme,
+}: {
+  exit: () => void;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
+}) {
+  const [tab, setTab] = useState<Tab>("requests");
+  useEffect(() => {
+    const timeout = window.setTimeout(exit, 5 * 60 * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [exit]);
   const screens = {
-    home: <Home go={setTab} />,
     requests: <Requests />,
     orders: <Orders />,
     orderList: <OrderList />,
     items: <ItemList />,
+    settings: <Settings exit={exit} theme={theme} setTheme={setTheme} />,
     inbox: <Inbox />,
     more: <More exit={exit} />,
   };
   const nav: [Tab, string, IconName][] = [
-    ["home", "Home", "home"],
     ["requests", "Requests", "file"],
     ["orders", "POs", "cart"],
     ["orderList", "Order List", "sheet"],
     ["items", "Items", "box"],
+    ["settings", "Settings", "settings"],
   ];
   return (
     <main className="shell">
@@ -1291,5 +1567,17 @@ function Shell({ exit }: { exit: () => void }) {
 
 export default function App() {
   const [inside, setInside] = useState(false);
-  return inside ? <Shell exit={() => setInside(false)} /> : <Login enter={() => setInside(true)} />;
+  const exit = useCallback(() => setInside(false), []);
+  const [theme, setTheme] = useState<"light" | "dark">(
+    () => (localStorage.getItem("outrigger-theme") as "light" | "dark") || "light",
+  );
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("outrigger-theme", theme);
+  }, [theme]);
+  return inside ? (
+    <Shell exit={exit} theme={theme} setTheme={setTheme} />
+  ) : (
+    <Login enter={() => setInside(true)} />
+  );
 }
