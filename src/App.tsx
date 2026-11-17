@@ -1,6 +1,6 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useMemo, useState } from "react";
 
-type Tab = "home" | "requests" | "orders" | "inbox" | "more";
+type Tab = "home" | "requests" | "orders" | "orderList" | "items" | "inbox" | "more";
 type IconName =
   | "home"
   | "file"
@@ -97,6 +97,8 @@ const reqs = [
     amount: "$2,548.90",
     status: "Approval pending",
     tone: "amber",
+    date: "2026-11-17",
+    purchaseType: "General",
   },
   {
     id: "REQ-MAM-000039959",
@@ -105,6 +107,8 @@ const reqs = [
     amount: "$59.76",
     status: "Approved",
     tone: "green",
+    date: "2026-11-16",
+    purchaseType: "Food",
   },
   {
     id: "REQ-MAM-000039955",
@@ -113,6 +117,8 @@ const reqs = [
     amount: "$280.15",
     status: "In process",
     tone: "blue",
+    date: "2026-11-14",
+    purchaseType: "General",
   },
 ];
 const orders = [
@@ -122,6 +128,9 @@ const orders = [
     subject: "Store Local Food Order",
     amount: "$1,404.00",
     status: "Accepted",
+    date: "2026-11-14",
+    delivery: "2026-11-15",
+    poType: "Storeroom",
   },
   {
     id: "PO-MAM-000022482",
@@ -129,6 +138,9 @@ const orders = [
     subject: "Store Local Food Order",
     amount: "MVR 1,050.02",
     status: "Accepted",
+    date: "2026-11-13",
+    delivery: "2026-11-15",
+    poType: "Storeroom",
   },
   {
     id: "PO-MAM-000022481",
@@ -136,6 +148,99 @@ const orders = [
     subject: "Fresh seafood supply",
     amount: "$865.50",
     status: "Processing",
+    date: "2026-11-11",
+    delivery: "2026-11-14",
+    poType: "Direct",
+  },
+];
+
+const orderRows = [
+  {
+    part: "0001048",
+    description: "Still Water 500ml",
+    uom: "CS",
+    quantity: 12,
+    source: "Storeroom",
+    location: "MAM Store Main",
+    category: "Beverage",
+    date: "2026-11-17",
+  },
+  {
+    part: "0002381",
+    description: "Fresh Milk Full Cream 1L",
+    uom: "CTN",
+    quantity: 6,
+    source: "Supplier",
+    location: "Main Kitchen",
+    category: "Dairy",
+    date: "2026-11-16",
+  },
+  {
+    part: "0003197",
+    description: "Basmati Rice Premium 5kg",
+    uom: "BAG",
+    quantity: 8,
+    source: "Storeroom",
+    location: "Main Kitchen",
+    category: "Dry Food",
+    date: "2026-11-14",
+  },
+  {
+    part: "0004412",
+    description: "All Purpose Cleaner 5L",
+    uom: "BTL",
+    quantity: 4,
+    source: "Supplier",
+    location: "Housekeeping",
+    category: "Cleaning",
+    date: "2026-11-12",
+  },
+];
+
+const itemRows = [
+  {
+    part: "0001048",
+    description: "Still Water 500ml",
+    supplier: "Euro Marketing",
+    onHand: 84,
+    invUom: "BTL",
+    orderUom: "CS",
+    price: 18.5,
+    category: "Beverage",
+    date: "2026-11-17",
+  },
+  {
+    part: "0002381",
+    description: "Fresh Milk Full Cream 1L",
+    supplier: "Best Buy Maldives",
+    onHand: 18,
+    invUom: "PC",
+    orderUom: "CTN",
+    price: 32,
+    category: "Dairy",
+    date: "2026-11-16",
+  },
+  {
+    part: "0003197",
+    description: "Basmati Rice Premium 5kg",
+    supplier: "Barque Investment",
+    onHand: 31,
+    invUom: "BAG",
+    orderUom: "BAG",
+    price: 21.75,
+    category: "Dry Food",
+    date: "2026-11-14",
+  },
+  {
+    part: "0004412",
+    description: "All Purpose Cleaner 5L",
+    supplier: "CleanCo Maldives",
+    onHand: 7,
+    invUom: "BTL",
+    orderUom: "CTN",
+    price: 44.25,
+    category: "Cleaning",
+    date: "2026-11-12",
   },
 ];
 
@@ -286,14 +391,14 @@ function Home({ go }: { go: (tab: Tab) => void }) {
             tone="aqua"
             title="Order sheet"
             sub="Build an order"
-            click={() => go("orders")}
+            click={() => go("orderList")}
           />
           <Quick
             icon="box"
             tone="navy"
             title="Inventory"
             sub="View stock"
-            click={() => go("more")}
+            click={() => go("items")}
           />
           <Quick
             icon="check"
@@ -382,30 +487,201 @@ function Search({
   );
 }
 
+type FilterOption = { value: string; label: string };
+function FilterTools({
+  query,
+  setQuery,
+  column,
+  setColumn,
+  columns,
+  sort,
+  setSort,
+  sorts,
+  direction,
+  setDirection,
+  from,
+  setFrom,
+  to,
+  setTo,
+  extra,
+}: {
+  query: string;
+  setQuery: (value: string) => void;
+  column: string;
+  setColumn: (value: string) => void;
+  columns: FilterOption[];
+  sort: string;
+  setSort: (value: string) => void;
+  sorts: FilterOption[];
+  direction: "asc" | "desc";
+  setDirection: (value: "asc" | "desc") => void;
+  from?: string;
+  setFrom?: (value: string) => void;
+  to?: string;
+  setTo?: (value: string) => void;
+  extra?: ReactNode;
+}) {
+  return (
+    <section className="filter-panel">
+      <div className="column-search">
+        <select
+          value={column}
+          onChange={(e) => setColumn(e.target.value)}
+          aria-label="Search column"
+        >
+          <option value="all">All columns</option>
+          {columns.map((option) => (
+            <option value={option.value} key={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div>
+          <Icon name="search" size={18} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${column === "all" ? "all columns" : columns.find((item) => item.value === column)?.label.toLowerCase()}`}
+          />
+        </div>
+      </div>
+      {(setFrom || extra) && (
+        <div className="filter-grid">
+          {setFrom && (
+            <label>
+              <span>From date</span>
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </label>
+          )}
+          {setTo && (
+            <label>
+              <span>To date</span>
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            </label>
+          )}
+          {extra}
+        </div>
+      )}
+      <div className="sort-row">
+        <label>
+          <span>Sort by</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            {sorts.map((option) => (
+              <option value={option.value} key={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="direction"
+          onClick={() => setDirection(direction === "asc" ? "desc" : "asc")}
+          aria-label={`Sort ${direction === "asc" ? "descending" : "ascending"}`}
+        >
+          <span>{direction === "asc" ? "Ascending" : "Descending"}</span>
+          <b>{direction === "asc" ? "↑" : "↓"}</b>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function matchesColumn(record: Record<string, unknown>, column: string, query: string) {
+  if (!query.trim()) return true;
+  const needle = query.toLowerCase();
+  if (column === "all")
+    return Object.values(record).some((value) => String(value).toLowerCase().includes(needle));
+  return String(record[column] ?? "")
+    .toLowerCase()
+    .includes(needle);
+}
+
+function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
+  const numericValue = (value: unknown) => {
+    if (typeof value === "number") return value;
+    const text = String(value).trim();
+    if (/^(?:[A-Z]{3}\s*)?\$?[\d,]+(?:\.\d+)?$/.test(text))
+      return Number(text.replace(/[^\d.]/g, ""));
+    return null;
+  };
+  const firstNumber = numericValue(a);
+  const secondNumber = numericValue(b);
+  const first = firstNumber ?? String(a);
+  const second = secondNumber ?? String(b);
+  const result =
+    typeof first === "number" && typeof second === "number"
+      ? first - second
+      : first.localeCompare(String(second), undefined, { numeric: true });
+  return direction === "asc" ? result : -result;
+}
+
 function Requests() {
-  const [query, setQuery] = useState(""),
-    [filter, setFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  const [column, setColumn] = useState("all");
+  const [status, setStatus] = useState("All");
+  const [sort, setSort] = useState("date");
+  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const list = useMemo(
     () =>
-      reqs.filter(
-        (r) =>
-          `${r.id} ${r.title} ${r.status}`.toLowerCase().includes(query.toLowerCase()) &&
-          (filter === "All" || r.status.includes(filter)),
-      ),
-    [query, filter],
+      reqs
+        .filter(
+          (record) =>
+            matchesColumn(record, column, query) &&
+            (status === "All" || record.status === status) &&
+            (!from || record.date >= from) &&
+            (!to || record.date <= to),
+        )
+        .sort((a, b) =>
+          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+        ),
+    [query, column, status, sort, direction, from, to],
   );
   return (
     <>
       <Header title="Requisitions" />
       <div className="content">
-        <Search value={query} change={setQuery} text="Search REQ number or subject" />
-        <div className="filters">
-          {["All", "Approval", "Approved", "In process"].map((x) => (
-            <button className={filter === x ? "active" : ""} onClick={() => setFilter(x)} key={x}>
-              {x}
-            </button>
-          ))}
-        </div>
+        <FilterTools
+          query={query}
+          setQuery={setQuery}
+          column={column}
+          setColumn={setColumn}
+          columns={[
+            { value: "id", label: "REQ number" },
+            { value: "title", label: "Subject" },
+            { value: "area", label: "Department" },
+            { value: "status", label: "Status" },
+            { value: "purchaseType", label: "Purchase type" },
+            { value: "amount", label: "Amount" },
+          ]}
+          sort={sort}
+          setSort={setSort}
+          sorts={[
+            { value: "date", label: "REQ date" },
+            { value: "id", label: "REQ number" },
+            { value: "title", label: "Subject" },
+            { value: "status", label: "Status" },
+            { value: "amount", label: "Amount" },
+          ]}
+          direction={direction}
+          setDirection={setDirection}
+          from={from}
+          setFrom={setFrom}
+          to={to}
+          setTo={setTo}
+          extra={
+            <label>
+              <span>Status</span>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option>All</option>
+                <option>Approval pending</option>
+                <option>Approved</option>
+                <option>In process</option>
+              </select>
+            </label>
+          }
+        />
         <ListHead text={`${list.length} requisitions`} />
         <div className="stack">
           {list.map((r) => (
@@ -436,7 +712,7 @@ function ListHead({ text }: { text: string }) {
     </div>
   );
 }
-function Doc({ id, title, area, amount, status, tone }: (typeof reqs)[number]) {
+function Doc({ id, title, area, amount, status, tone, date }: (typeof reqs)[number]) {
   return (
     <article className="doc">
       <div>
@@ -448,7 +724,13 @@ function Doc({ id, title, area, amount, status, tone }: (typeof reqs)[number]) {
         <span>
           <Icon name="building" size={14} /> {area}
         </span>
-        <span>17 Nov 2026</span>
+        <span>
+          {new Date(date + "T00:00:00").toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
       </p>
       <footer>
         <small>Home currency</small>
@@ -461,27 +743,71 @@ function Doc({ id, title, area, amount, status, tone }: (typeof reqs)[number]) {
 
 function Orders() {
   const [query, setQuery] = useState("");
-  const list = orders.filter((o) =>
-    `${o.id} ${o.supplier}`.toLowerCase().includes(query.toLowerCase()),
+  const [column, setColumn] = useState("all");
+  const [status, setStatus] = useState("All");
+  const [sort, setSort] = useState("date");
+  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const list = useMemo(
+    () =>
+      orders
+        .filter(
+          (record) =>
+            matchesColumn(record, column, query) &&
+            (status === "All" || record.status === status) &&
+            (!from || record.date >= from) &&
+            (!to || record.date <= to),
+        )
+        .sort((a, b) =>
+          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+        ),
+    [query, column, status, sort, direction, from, to],
   );
   return (
     <>
       <Header title="Purchase orders" />
       <div className="content">
-        <Search value={query} change={setQuery} text="Search PO or supplier" />
-        <div className="overview">
-          <div>
-            <small>LAST 30 DAYS</small>
-            <b>85</b>
-            <span>purchase orders</span>
-          </div>
-          <div>
-            <small>TOTAL VALUE</small>
-            <b>$48.2K</b>
-            <span>home currency</span>
-          </div>
-        </div>
-        <ListHead text="Recent orders" />
+        <FilterTools
+          query={query}
+          setQuery={setQuery}
+          column={column}
+          setColumn={setColumn}
+          columns={[
+            { value: "id", label: "PO number" },
+            { value: "supplier", label: "Supplier name" },
+            { value: "subject", label: "Subject" },
+            { value: "status", label: "PO status" },
+            { value: "poType", label: "PO type" },
+            { value: "amount", label: "PO total" },
+          ]}
+          sort={sort}
+          setSort={setSort}
+          sorts={[
+            { value: "date", label: "PO date" },
+            { value: "delivery", label: "Required delivery" },
+            { value: "id", label: "PO number" },
+            { value: "supplier", label: "Supplier" },
+            { value: "amount", label: "PO total" },
+          ]}
+          direction={direction}
+          setDirection={setDirection}
+          from={from}
+          setFrom={setFrom}
+          to={to}
+          setTo={setTo}
+          extra={
+            <label>
+              <span>PO status</span>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option>All</option>
+                <option>Accepted</option>
+                <option>Processing</option>
+              </select>
+            </label>
+          }
+        />
+        <ListHead text={`${list.length} purchase orders`} />
         <div className="stack">
           {list.map((o) => (
             <article className="doc" key={o.id}>
@@ -492,9 +818,240 @@ function Orders() {
               <h3>{o.subject}</h3>
               <p>{o.supplier}</p>
               <footer>
-                <small>14 Nov 2026</small>
+                <small>{o.date.split("-").reverse().join("/")}</small>
                 <b>{o.amount}</b>
                 <Icon name="next" />
+              </footer>
+            </article>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function OrderList() {
+  const [query, setQuery] = useState("");
+  const [column, setColumn] = useState("all");
+  const [sort, setSort] = useState("date");
+  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [source, setSource] = useState("All");
+  const [location, setLocation] = useState("All");
+  const list = useMemo(
+    () =>
+      orderRows
+        .filter(
+          (record) =>
+            matchesColumn(record, column, query) &&
+            (source === "All" || record.source === source) &&
+            (location === "All" || record.location === location) &&
+            (!from || record.date >= from) &&
+            (!to || record.date <= to),
+        )
+        .sort((a, b) =>
+          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+        ),
+    [query, column, source, location, from, to, sort, direction],
+  );
+  return (
+    <>
+      <Header title="Order List" />
+      <div className="content">
+        <FilterTools
+          query={query}
+          setQuery={setQuery}
+          column={column}
+          setColumn={setColumn}
+          columns={[
+            { value: "part", label: "Part number" },
+            { value: "description", label: "Description" },
+            { value: "uom", label: "REQ UOM" },
+            { value: "quantity", label: "Quantity" },
+            { value: "source", label: "Source type" },
+            { value: "location", label: "Location" },
+            { value: "category", label: "Category" },
+          ]}
+          sort={sort}
+          setSort={setSort}
+          sorts={[
+            { value: "date", label: "Added date" },
+            { value: "part", label: "Part number" },
+            { value: "description", label: "Description" },
+            { value: "quantity", label: "Quantity" },
+            { value: "category", label: "Category" },
+          ]}
+          direction={direction}
+          setDirection={setDirection}
+          from={from}
+          setFrom={setFrom}
+          to={to}
+          setTo={setTo}
+          extra={
+            <>
+              <label>
+                <span>Source type</span>
+                <select value={source} onChange={(e) => setSource(e.target.value)}>
+                  <option>All</option>
+                  <option>Storeroom</option>
+                  <option>Supplier</option>
+                </select>
+              </label>
+              <label>
+                <span>Location</span>
+                <select value={location} onChange={(e) => setLocation(e.target.value)}>
+                  <option>All</option>
+                  {[...new Set(orderRows.map((item) => item.location))].map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          }
+        />
+        <ListHead text={`${list.length} order list items`} />
+        <div className="stack">
+          {list.map((item) => (
+            <article className="inventory-row" key={item.part}>
+              <div className="row-top">
+                <span>PART # {item.part}</span>
+                <Pill status={item.source} tone={item.source === "Storeroom" ? "green" : "blue"} />
+              </div>
+              <h3>{item.description}</h3>
+              <div className="data-grid">
+                <span>
+                  <small>REQ UOM</small>
+                  <b>{item.uom}</b>
+                </span>
+                <span>
+                  <small>QUANTITY</small>
+                  <b>{item.quantity}</b>
+                </span>
+                <span>
+                  <small>CATEGORY</small>
+                  <b>{item.category}</b>
+                </span>
+              </div>
+              <footer>
+                <span>
+                  <Icon name="building" size={14} /> {item.location}
+                </span>
+                <time>{item.date}</time>
+              </footer>
+            </article>
+          ))}
+        </div>
+        <button className="fab" aria-label="Add order list item">
+          <Icon name="plus" />
+        </button>
+      </div>
+    </>
+  );
+}
+
+function ItemList() {
+  const [query, setQuery] = useState("");
+  const [column, setColumn] = useState("all");
+  const [sort, setSort] = useState("part");
+  const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  const [category, setCategory] = useState("All");
+  const [supplier, setSupplier] = useState("All");
+  const list = useMemo(
+    () =>
+      itemRows
+        .filter(
+          (record) =>
+            matchesColumn(record, column, query) &&
+            (category === "All" || record.category === category) &&
+            (supplier === "All" || record.supplier === supplier),
+        )
+        .sort((a, b) =>
+          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+        ),
+    [query, column, category, supplier, sort, direction],
+  );
+  return (
+    <>
+      <Header title="Item List" />
+      <div className="content">
+        <FilterTools
+          query={query}
+          setQuery={setQuery}
+          column={column}
+          setColumn={setColumn}
+          columns={[
+            { value: "part", label: "Part number" },
+            { value: "description", label: "Description" },
+            { value: "supplier", label: "Supplier name" },
+            { value: "onHand", label: "On hand quantity" },
+            { value: "invUom", label: "Inventory UOM" },
+            { value: "orderUom", label: "Order UOM" },
+            { value: "price", label: "Price" },
+            { value: "category", label: "Category" },
+          ]}
+          sort={sort}
+          setSort={setSort}
+          sorts={[
+            { value: "part", label: "Part number" },
+            { value: "description", label: "Description" },
+            { value: "supplier", label: "Supplier name" },
+            { value: "onHand", label: "On hand quantity" },
+            { value: "price", label: "Price" },
+            { value: "date", label: "Last updated" },
+          ]}
+          direction={direction}
+          setDirection={setDirection}
+          extra={
+            <>
+              <label>
+                <span>Category</span>
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <option>All</option>
+                  {[...new Set(itemRows.map((item) => item.category))].map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Supplier</span>
+                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+                  <option>All</option>
+                  {[...new Set(itemRows.map((item) => item.supplier))].map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          }
+        />
+        <ListHead text={`${list.length} inventory items`} />
+        <div className="stack">
+          {list.map((item) => (
+            <article className="inventory-row" key={item.part}>
+              <div className="row-top">
+                <span>PART # {item.part}</span>
+                <b>${item.price.toFixed(2)}</b>
+              </div>
+              <h3>{item.description}</h3>
+              <p className="supplier">{item.supplier}</p>
+              <div className="data-grid">
+                <span>
+                  <small>ON HAND</small>
+                  <b>{item.onHand}</b>
+                </span>
+                <span>
+                  <small>INV UOM</small>
+                  <b>{item.invUom}</b>
+                </span>
+                <span>
+                  <small>ORDER UOM</small>
+                  <b>{item.orderUom}</b>
+                </span>
+              </div>
+              <footer>
+                <span>{item.category}</span>
+                <time>Updated {item.date}</time>
               </footer>
             </article>
           ))}
@@ -614,15 +1171,17 @@ function Shell({ exit }: { exit: () => void }) {
     home: <Home go={setTab} />,
     requests: <Requests />,
     orders: <Orders />,
+    orderList: <OrderList />,
+    items: <ItemList />,
     inbox: <Inbox />,
     more: <More exit={exit} />,
   };
   const nav: [Tab, string, IconName][] = [
     ["home", "Home", "home"],
     ["requests", "Requests", "file"],
-    ["orders", "Orders", "cart"],
-    ["inbox", "Inbox", "inbox"],
-    ["more", "More", "grid"],
+    ["orders", "POs", "cart"],
+    ["orderList", "Order List", "sheet"],
+    ["items", "Items", "box"],
   ];
   return (
     <main className="shell">
@@ -632,7 +1191,6 @@ function Shell({ exit }: { exit: () => void }) {
           <button className={tab === n[0] ? "active" : ""} onClick={() => setTab(n[0])} key={n[0]}>
             <span>
               <Icon name={n[2]} />
-              {n[0] === "inbox" && <i>3</i>}
             </span>
             <small>{n[1]}</small>
           </button>
