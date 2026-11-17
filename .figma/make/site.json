@@ -1,1 +1,10 @@
-{}
+{
+  "description": "Access Birchstreet services through a mobile-friendly interface with flexible login options for username, password, or subscriber ID.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
