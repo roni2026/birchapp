@@ -199,18 +199,6 @@
 .field button {
   padding: 4px;
 }
-.form-options {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.form-options > button {
-  color: #c94d3e;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
 .check {
   display: flex;
   align-items: center;

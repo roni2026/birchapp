@@ -149,8 +149,8 @@ function Login({ enter }: { enter: () => void }) {
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    if (!data.get("login") || !data.get("password"))
-      return setError("Enter your Login ID and password to continue.");
+    if (data.get("login") !== "test" || data.get("password") !== "test")
+      return setError("Use test as both the Login ID and password.");
     setError("");
     enter();
   }
@@ -186,7 +186,12 @@ function Login({ enter }: { enter: () => void }) {
             <span>Login ID</span>
             <div className="field">
               <Icon name="user" />
-              <input name="login" autoComplete="username" placeholder="Enter your Login ID" />
+              <input
+                name="login"
+                autoComplete="username"
+                defaultValue="test"
+                placeholder="Enter your Login ID"
+              />
             </div>
           </label>
           <label>
@@ -197,6 +202,7 @@ function Login({ enter }: { enter: () => void }) {
                 name="password"
                 type={show ? "text" : "password"}
                 autoComplete="current-password"
+                defaultValue="test"
                 placeholder="Enter your password"
               />
               <button type="button" onClick={() => setShow(!show)} aria-label="Show password">
@@ -204,9 +210,6 @@ function Login({ enter }: { enter: () => void }) {
               </button>
             </div>
           </label>
-          <div className="form-options">
-            <button type="button">Forgot password?</button>
-          </div>
           {error && <p className="error">{error}</p>}
           <button className="sign-in">
             Sign in securely <Icon name="next" />
