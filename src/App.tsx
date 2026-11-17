@@ -897,6 +897,15 @@ function FilterTools({
   belowSearch?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const runSearch = () => {
+    if (searchDisabled || searching) return;
+    setSearching(true);
+    window.setTimeout(() => {
+      onSearch();
+      setSearching(false);
+    }, 550);
+  };
   return (
     <section className="filter-panel">
       <div className="column-search">
@@ -917,16 +926,20 @@ function FilterTools({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") runSearch();
+            }}
             placeholder="Enter Search Value"
             disabled={searchDisabled}
           />
           <button
-            className="search-submit"
-            onClick={onSearch}
-            disabled={searchDisabled}
+            className={`search-submit ${searching ? "loading" : ""}`}
+            onClick={runSearch}
+            disabled={searchDisabled || searching}
             aria-label="Search"
           >
-            Search
+            {searching && <span className="mini-spinner" />}
+            {searching ? "Searching" : "Search"}
           </button>
         </div>
       </div>
@@ -1101,11 +1114,28 @@ function Requests() {
   );
 }
 function ListHead({ text }: { text: string }) {
+  const [state, setState] = useState<"idle" | "syncing" | "synced">("idle");
+  const sync = () => {
+    if (state === "syncing") return;
+    setState("syncing");
+    window.dispatchEvent(
+      new CustomEvent("birchstreet:sync", {
+        detail: { list: text },
+      }),
+    );
+    window.setTimeout(() => {
+      setState("synced");
+      window.setTimeout(() => setState("idle"), 1200);
+    }, 900);
+  };
   return (
     <div className="list-head">
       <b>{text}</b>
-      <button>
-        <Icon name="refresh" size={15} /> Sync
+      <button className={`sync-button ${state}`} onClick={sync}>
+        <span>
+          <Icon name={state === "synced" ? "check" : "refresh"} size={15} />
+        </span>
+        {state === "syncing" ? "Syncing" : state === "synced" ? "Synced" : "Sync"}
       </button>
     </div>
   );
@@ -1318,6 +1348,12 @@ function OrderList() {
               ))}
             </select>
           </label>
+          {!entryOptions.length && (
+            <div className="entry-loading">
+              <span className="mini-spinner" />
+              Loading real entries from BirchStreet
+            </div>
+          )}
         </section>
         <FilterTools
           query={query}
