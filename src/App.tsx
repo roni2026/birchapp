@@ -244,6 +244,125 @@ const itemRows = [
   },
 ];
 
+const reqViews = [
+  "All My REQ's",
+  "My In Process REQ's",
+  "All Approved REQ's",
+  "My Completed REQ's",
+  "All Standard REQ's",
+  "My Selected Depts Last 30 Days REQ'",
+  "My Selected Departments REQ's",
+  "Awaiting Fulfillment",
+  "Partially Fulfilled",
+  "Completely Fulfilled",
+  "Recycle Bin REQ's",
+  "All REQ's",
+];
+const reqSearchColumns = [
+  "BEO #",
+  "BPO Number",
+  "Buyer person ID",
+  "Company ID",
+  "Dept name",
+  "Dispatched",
+  "Entity code",
+  "Event ID",
+  "Exempt from autoflip scheduler",
+  "Ext REQ Num",
+  "From RFQ num",
+  "From location",
+  "Planned",
+  "Project code",
+  "Purchase type",
+  "REQ date",
+  "REQ number",
+  "Recalled REQ",
+  "Recurring REQ",
+  "Req delivery",
+  "Restock ID",
+  "Status",
+  "Subject",
+  "To location",
+  "Type",
+];
+const poViews = [
+  "My Last 30 Days PO's",
+  "All Last 30 Days PO's",
+  "My Last 60 Days PO's",
+  "All Last 60 Days PO's",
+  "My Last 90 Days PO's",
+  "All Last 90 Days PO's",
+  "All My PO's",
+  "My New PO's",
+  "All New PO's",
+  "My In Process PO's",
+  "My Completed PO's",
+  "All Completed PO's",
+  "All Partially Rec'd & Accepted PO's",
+  "All Accepted PO's",
+  "My Selected Depts Last 30 Days PO's",
+  "My Selected Departments PO's",
+  "My Recycle Bin PO's",
+  "All Recycle Bin PO's",
+  "All PO's",
+];
+const poSearchColumns = [
+  "Alloc",
+  "App grps req",
+  "Buyer person ID",
+  "Confirm",
+  "Consignment PO",
+  "Cost Center",
+  "Deposit rec'd date",
+  "Dept code",
+  "Discretionary Spend",
+  "From REQ num",
+  "From RFQ num",
+  "GL Account",
+  "Home cur.",
+  "Internal PO #",
+  "PO Status",
+  "PO Total",
+  "PO Type",
+  "PO date",
+  "PO number",
+  "Phase",
+  "Project number",
+  "Purchase type",
+  "Recalled PO",
+  "Recurring PO",
+  "Req delivery",
+  "Ship date",
+  "Source doc num",
+  "Subj / Supplier",
+  "Subject",
+  "Supplier name",
+  "Tracking number",
+];
+
+const fieldKey: Record<string, string> = {
+  "REQ number": "id",
+  Subject: "title",
+  "Dept name": "area",
+  "Purchase type": "purchaseType",
+  "REQ date": "date",
+  Status: "status",
+  "PO number": "id",
+  "Supplier name": "supplier",
+  "Subj / Supplier": "supplier",
+  "PO Status": "status",
+  "PO Total": "amount",
+  "PO Type": "poType",
+  "PO date": "date",
+  "Req delivery": "delivery",
+  "Part #": "part",
+  Description: "description",
+  "Category name": "category",
+  "Category ID": "category",
+  Commodity: "category",
+  "Base UOM": "invUom",
+};
+
 function Pill({ status, tone = "blue" }: { status: string; tone?: string }) {
   return <span className={`pill ${tone}`}>{status}</span>;
 }
@@ -529,7 +648,6 @@ function FilterTools({
           onChange={(e) => setColumn(e.target.value)}
           aria-label="Search column"
         >
-          <option value="all">All columns</option>
           {columns.map((option) => (
             <option value={option.value} key={option.value}>
               {option.label}
@@ -539,9 +657,10 @@ function FilterTools({
         <div>
           <Icon name="search" size={18} />
           <input
+            type={/date|delivery/i.test(column) ? "date" : "text"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${column === "all" ? "all columns" : columns.find((item) => item.value === column)?.label.toLowerCase()}`}
+            placeholder="Enter Search Value"
           />
         </div>
       </div>
@@ -564,7 +683,7 @@ function FilterTools({
       )}
       <div className="sort-row">
         <label>
-          <span>Sort by</span>
+          <span>Sort</span>
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
             {sorts.map((option) => (
               <option value={option.value} key={option.value}>
@@ -589,9 +708,8 @@ function FilterTools({
 function matchesColumn(record: Record<string, unknown>, column: string, query: string) {
   if (!query.trim()) return true;
   const needle = query.toLowerCase();
-  if (column === "all")
-    return Object.values(record).some((value) => String(value).toLowerCase().includes(needle));
-  return String(record[column] ?? "")
+  const key = fieldKey[column] ?? column;
+  return String(record[key] ?? "")
     .toLowerCase()
     .includes(needle);
 }
@@ -617,26 +735,23 @@ function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
 
 function Requests() {
   const [query, setQuery] = useState("");
-  const [column, setColumn] = useState("all");
-  const [status, setStatus] = useState("All");
+  const [column, setColumn] = useState("REQ number");
+  const [view, setView] = useState("All My REQ's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
   const list = useMemo(
     () =>
       reqs
         .filter(
           (record) =>
             matchesColumn(record, column, query) &&
-            (status === "All" || record.status === status) &&
-            (!from || record.date >= from) &&
-            (!to || record.date <= to),
+            (!view.includes("In Process") || record.status === "In process") &&
+            (!view.includes("Approved") || record.status === "Approved"),
         )
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, status, sort, direction, from, to],
+    [query, column, view, sort, direction],
   );
   return (
     <>
@@ -647,37 +762,26 @@ function Requests() {
           setQuery={setQuery}
           column={column}
           setColumn={setColumn}
-          columns={[
-            { value: "id", label: "REQ number" },
-            { value: "title", label: "Subject" },
-            { value: "area", label: "Department" },
-            { value: "status", label: "Status" },
-            { value: "purchaseType", label: "Purchase type" },
-            { value: "amount", label: "Amount" },
-          ]}
+          columns={reqSearchColumns.map((label) => ({ value: label, label }))}
           sort={sort}
           setSort={setSort}
           sorts={[
             { value: "date", label: "REQ date" },
             { value: "id", label: "REQ number" },
             { value: "title", label: "Subject" },
+            { value: "area", label: "Dept name" },
             { value: "status", label: "Status" },
-            { value: "amount", label: "Amount" },
+            { value: "purchaseType", label: "Purchase type" },
           ]}
           direction={direction}
           setDirection={setDirection}
-          from={from}
-          setFrom={setFrom}
-          to={to}
-          setTo={setTo}
           extra={
             <label>
-              <span>Status</span>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option>All</option>
-                <option>Approval pending</option>
-                <option>Approved</option>
-                <option>In process</option>
+              <span>REQ view</span>
+              <select value={view} onChange={(e) => setView(e.target.value)}>
+                {reqViews.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
             </label>
           }
@@ -743,26 +847,23 @@ function Doc({ id, title, area, amount, status, tone, date }: (typeof reqs)[numb
 
 function Orders() {
   const [query, setQuery] = useState("");
-  const [column, setColumn] = useState("all");
-  const [status, setStatus] = useState("All");
+  const [column, setColumn] = useState("PO number");
+  const [view, setView] = useState("My Last 30 Days PO's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
   const list = useMemo(
     () =>
       orders
         .filter(
           (record) =>
             matchesColumn(record, column, query) &&
-            (status === "All" || record.status === status) &&
-            (!from || record.date >= from) &&
-            (!to || record.date <= to),
+            (!view.includes("Accepted") || record.status === "Accepted") &&
+            (!view.includes("In Process") || record.status === "Processing"),
         )
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, status, sort, direction, from, to],
+    [query, column, view, sort, direction],
   );
   return (
     <>
@@ -773,14 +874,7 @@ function Orders() {
           setQuery={setQuery}
           column={column}
           setColumn={setColumn}
-          columns={[
-            { value: "id", label: "PO number" },
-            { value: "supplier", label: "Supplier name" },
-            { value: "subject", label: "Subject" },
-            { value: "status", label: "PO status" },
-            { value: "poType", label: "PO type" },
-            { value: "amount", label: "PO total" },
-          ]}
+          columns={poSearchColumns.map((label) => ({ value: label, label }))}
           sort={sort}
           setSort={setSort}
           sorts={[
@@ -792,17 +886,13 @@ function Orders() {
           ]}
           direction={direction}
           setDirection={setDirection}
-          from={from}
-          setFrom={setFrom}
-          to={to}
-          setTo={setTo}
           extra={
             <label>
-              <span>PO status</span>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option>All</option>
-                <option>Accepted</option>
-                <option>Processing</option>
+              <span>PO view</span>
+              <select value={view} onChange={(e) => setView(e.target.value)}>
+                {poViews.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
             </label>
           }
@@ -832,28 +922,24 @@ function Orders() {
 
 function OrderList() {
   const [query, setQuery] = useState("");
-  const [column, setColumn] = useState("all");
-  const [sort, setSort] = useState("date");
-  const [direction, setDirection] = useState<"asc" | "desc">("desc");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [source, setSource] = useState("All");
-  const [location, setLocation] = useState("All");
+  const [column, setColumn] = useState("Part #");
+  const [sort, setSort] = useState("part");
+  const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  const [location, setLocation] = useState("");
+  const [entry, setEntry] = useState("");
+  const [parValues, setParValues] = useState(false);
+  const [showOnHand, setShowOnHand] = useState(false);
   const list = useMemo(
     () =>
       orderRows
         .filter(
           (record) =>
-            matchesColumn(record, column, query) &&
-            (source === "All" || record.source === source) &&
-            (location === "All" || record.location === location) &&
-            (!from || record.date >= from) &&
-            (!to || record.date <= to),
+            matchesColumn(record, column, query) && (!location || record.location === location),
         )
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, source, location, from, to, sort, direction],
+    [query, column, location, sort, direction],
   );
   return (
     <>
@@ -865,51 +951,70 @@ function OrderList() {
           column={column}
           setColumn={setColumn}
           columns={[
-            { value: "part", label: "Part number" },
-            { value: "description", label: "Description" },
-            { value: "uom", label: "REQ UOM" },
+            { value: "Part #", label: "Part #" },
+            { value: "Description", label: "Description" },
+            { value: "uom", label: "Req UOM" },
             { value: "quantity", label: "Quantity" },
             { value: "source", label: "Source type" },
-            { value: "location", label: "Location" },
-            { value: "category", label: "Category" },
+            { value: "location", label: "Storeroom" },
+            { value: "category", label: "Category name" },
           ]}
           sort={sort}
           setSort={setSort}
           sorts={[
-            { value: "date", label: "Added date" },
-            { value: "part", label: "Part number" },
+            { value: "part", label: "Part #" },
             { value: "description", label: "Description" },
+            { value: "uom", label: "Req UOM" },
             { value: "quantity", label: "Quantity" },
+            { value: "source", label: "Source type" },
+            { value: "location", label: "Storeroom" },
             { value: "category", label: "Category" },
           ]}
           direction={direction}
           setDirection={setDirection}
-          from={from}
-          setFrom={setFrom}
-          to={to}
-          setTo={setTo}
           extra={
             <>
               <label>
-                <span>Source type</span>
-                <select value={source} onChange={(e) => setSource(e.target.value)}>
-                  <option>All</option>
-                  <option>Storeroom</option>
-                  <option>Supplier</option>
+                <span>Order Sheet</span>
+                <select value={entry} onChange={(e) => setEntry(e.target.value)}>
+                  <option value="">Select Entry</option>
                 </select>
               </label>
               <label>
-                <span>Location</span>
+                <span>Location filter</span>
                 <select value={location} onChange={(e) => setLocation(e.target.value)}>
-                  <option>All</option>
+                  <option value="">Select Locations</option>
                   {[...new Set(orderRows.map((item) => item.location))].map((value) => (
                     <option key={value}>{value}</option>
                   ))}
                 </select>
               </label>
+              <label className="native-check">
+                <input
+                  type="checkbox"
+                  checked={parValues}
+                  onChange={(e) => setParValues(e.target.checked)}
+                />
+                <span>Par values</span>
+              </label>
+              <label className="native-check">
+                <input
+                  type="checkbox"
+                  checked={showOnHand}
+                  onChange={(e) => setShowOnHand(e.target.checked)}
+                />
+                <span>Show on hand quantities</span>
+              </label>
             </>
           }
         />
+        <div className="action-strip">
+          {["Create REQ", "Add to REQ", "Clear all qty", "Item Search", "Add Item", "More"].map(
+            (action) => (
+              <button key={action}>{action}</button>
+            ),
+          )}
+        </div>
         <ListHead text={`${list.length} order list items`} />
         <div className="stack">
           {list.map((item) => (
@@ -932,6 +1037,12 @@ function OrderList() {
                   <small>CATEGORY</small>
                   <b>{item.category}</b>
                 </span>
+                {showOnHand && (
+                  <span>
+                    <small>ON HAND</small>
+                    <b>{item.quantity * 3}</b>
+                  </span>
+                )}
               </div>
               <footer>
                 <span>
@@ -952,24 +1063,17 @@ function OrderList() {
 
 function ItemList() {
   const [query, setQuery] = useState("");
-  const [column, setColumn] = useState("all");
+  const [column, setColumn] = useState("Part #");
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
-  const [category, setCategory] = useState("All");
-  const [supplier, setSupplier] = useState("All");
   const list = useMemo(
     () =>
       itemRows
-        .filter(
-          (record) =>
-            matchesColumn(record, column, query) &&
-            (category === "All" || record.category === category) &&
-            (supplier === "All" || record.supplier === supplier),
-        )
+        .filter((record) => matchesColumn(record, column, query))
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [query, column, category, supplier, sort, direction],
+    [query, column, sort, direction],
   );
   return (
     <>
@@ -981,50 +1085,35 @@ function ItemList() {
           column={column}
           setColumn={setColumn}
           columns={[
-            { value: "part", label: "Part number" },
-            { value: "description", label: "Description" },
-            { value: "supplier", label: "Supplier name" },
-            { value: "onHand", label: "On hand quantity" },
-            { value: "invUom", label: "Inventory UOM" },
-            { value: "orderUom", label: "Order UOM" },
-            { value: "price", label: "Price" },
-            { value: "category", label: "Category" },
+            { value: "Base UOM", label: "Base UOM" },
+            { value: "Category ID", label: "Category ID" },
+            { value: "Category name", label: "Category name" },
+            { value: "Commodity", label: "Commodity" },
+            { value: "Description", label: "Description" },
+            { value: "Part #", label: "Part #" },
           ]}
           sort={sort}
           setSort={setSort}
           sorts={[
-            { value: "part", label: "Part number" },
+            { value: "part", label: "Part #" },
             { value: "description", label: "Description" },
             { value: "supplier", label: "Supplier name" },
-            { value: "onHand", label: "On hand quantity" },
+            { value: "onHand", label: "On Hand Qty" },
+            { value: "invUom", label: "Inventory UOM" },
+            { value: "orderUom", label: "Order UOM" },
             { value: "price", label: "Price" },
-            { value: "date", label: "Last updated" },
+            { value: "category", label: "Category name" },
           ]}
           direction={direction}
           setDirection={setDirection}
-          extra={
-            <>
-              <label>
-                <span>Category</span>
-                <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <option>All</option>
-                  {[...new Set(itemRows.map((item) => item.category))].map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>Supplier</span>
-                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-                  <option>All</option>
-                  {[...new Set(itemRows.map((item) => item.supplier))].map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-              </label>
-            </>
-          }
         />
+        <div className="action-strip">
+          {["Item Request", "Add to OS", "Remove from OS", "Print", "Create PO", "Add to PO"].map(
+            (action) => (
+              <button key={action}>{action}</button>
+            ),
+          )}
+        </div>
         <ListHead text={`${list.length} inventory items`} />
         <div className="stack">
           {list.map((item) => (
