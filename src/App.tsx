@@ -1006,7 +1006,7 @@ function Requests() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("REQ number");
-  const [view, setView] = useState("All My REQ's");
+  const [view, setView] = useState("All REQ's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState("");
