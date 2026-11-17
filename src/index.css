@@ -95,7 +95,7 @@
   letter-spacing: 0.22em;
 }
 .login-brand h1 {
-  font: 800 24px Manrope;
+  font: 800 27px Manrope;
   letter-spacing: -0.04em;
   text-transform: uppercase;
 }
@@ -106,49 +106,10 @@
   font: 800 23px Manrope;
   letter-spacing: -0.04em;
 }
-.welcome p {
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 3px;
-}
 .login-card form {
   display: flex;
   flex-direction: column;
   gap: 13px;
-}
-.auto-config {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 12px;
-  border: 1px solid #d8ebe7;
-  border-radius: 12px;
-  background: #f1f8f7;
-  color: var(--aqua);
-}
-.auto-config > span {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 9px;
-  background: #dfeeea;
-}
-.auto-config > div {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.auto-config b {
-  color: #234b4b;
-  font-size: 10px;
-}
-.auto-config small {
-  color: #6e8585;
-  font-size: 8px;
-  margin-top: 2px;
 }
 .login-card label > span {
   display: block;

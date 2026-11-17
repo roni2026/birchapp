@@ -631,25 +631,14 @@ function Login({ enter }: { enter: () => void }) {
         <div className="login-brand">
           <Logo size={68} />
           <div>
-            <small>OUTRIGGER</small>
-            <h1>Birchstreet</h1>
+            <small>BIRCHSTREET</small>
+            <h1>OUTRIGGER</h1>
           </div>
         </div>
         <div className="welcome">
-          <h2>Welcome back</h2>
-          <p>Sign in to manage purchasing and inventory.</p>
+          <h2>Welcome</h2>
         </div>
         <form onSubmit={submit}>
-          <div className="auto-config">
-            <span>
-              <Icon name="server" />
-            </span>
-            <div>
-              <b>Automatic portal connection</b>
-              <small>Server detected automatically · Subscriber 458</small>
-            </div>
-            <Icon name="check" size={17} />
-          </div>
           <input type="hidden" name="subscriberId" value="458" />
           <label>
             <span>Login ID</span>
