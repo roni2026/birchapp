@@ -885,6 +885,7 @@ function FilterTools({
   setTo?: (value: string) => void;
   extra?: ReactNode;
 }) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <section className="filter-panel">
       <div className="column-search">
@@ -918,43 +919,54 @@ function FilterTools({
           </button>
         </div>
       </div>
-      {(setFrom || extra) && (
-        <div className="filter-grid">
-          {setFrom && (
-            <label>
-              <span>From date</span>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </label>
+      <button
+        className={`advanced-toggle ${expanded ? "open" : ""}`}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span>Filters & sorting</span>
+        <Icon name="next" size={14} />
+      </button>
+      {expanded && (
+        <div className="advanced-controls">
+          {(setFrom || extra) && (
+            <div className="filter-grid">
+              {setFrom && (
+                <label>
+                  <span>From date</span>
+                  <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                </label>
+              )}
+              {setTo && (
+                <label>
+                  <span>To date</span>
+                  <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                </label>
+              )}
+              {extra}
+            </div>
           )}
-          {setTo && (
+          <div className="sort-row">
             <label>
-              <span>To date</span>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              <span>Sort</span>
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                {sorts.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
-          )}
-          {extra}
+            <button
+              className="direction"
+              onClick={() => setDirection(direction === "asc" ? "desc" : "asc")}
+              aria-label={`Sort ${direction === "asc" ? "descending" : "ascending"}`}
+            >
+              <span>{direction === "asc" ? "Ascending" : "Descending"}</span>
+              <b>{direction === "asc" ? "↑" : "↓"}</b>
+            </button>
+          </div>
         </div>
       )}
-      <div className="sort-row">
-        <label>
-          <span>Sort</span>
-          <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            {sorts.map((option) => (
-              <option value={option.value} key={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          className="direction"
-          onClick={() => setDirection(direction === "asc" ? "desc" : "asc")}
-          aria-label={`Sort ${direction === "asc" ? "descending" : "ascending"}`}
-        >
-          <span>{direction === "asc" ? "Ascending" : "Descending"}</span>
-          <b>{direction === "asc" ? "↑" : "↓"}</b>
-        </button>
-      </div>
     </section>
   );
 }
