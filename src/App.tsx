@@ -24,7 +24,8 @@ type IconName =
   | "user"
   | "lock"
   | "building"
-  | "refresh";
+  | "refresh"
+  | "calendar";
 
 const icons: Record<IconName, string[]> = {
   home: ["M3 11l9-8 9 8", "M5 10v10h14V10M9 20v-6h6v6"],
@@ -59,6 +60,7 @@ const icons: Record<IconName, string[]> = {
   lock: ["M4 10h16v11H4z", "M8 10V7a4 4 0 018 0v3"],
   building: ["M4 21V5l8-3 8 3v16M8 8h2M14 8h2M8 12h2M14 12h2M9 21v-5h6v5"],
   refresh: ["M20 7V3l-2 2a8 8 0 101.5 9", "M20 3h-4"],
+  calendar: ["M5 3v3M19 3v3M3 9h18", "M4 5h16v16H4z"],
 };
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
@@ -376,6 +378,101 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric",
   });
+}
+
+function ModernDatePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}) {
+  const initial = value ? new Date(value + "T00:00:00") : new Date();
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(new Date(initial.getFullYear(), initial.getMonth(), 1));
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstDay = new Date(year, monthIndex, 1).getDay();
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const cells = Array.from({ length: firstDay + days }, (_, index) =>
+    index < firstDay ? null : index - firstDay + 1,
+  );
+  const toValue = (day: number) =>
+    `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return (
+    <div className="modern-date">
+      <span>{label}</span>
+      <button className="date-trigger" onClick={() => setOpen(!open)}>
+        <Icon name="calendar" size={16} />
+        <b>{value ? formatDate(value) : "Select date"}</b>
+      </button>
+      {open && (
+        <div className="calendar-popover">
+          <div className="calendar-head">
+            <button
+              onClick={() => setMonth(new Date(year, monthIndex - 1, 1))}
+              aria-label="Previous month"
+            >
+              <Icon name="next" size={16} />
+            </button>
+            <b>{month.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</b>
+            <button
+              onClick={() => setMonth(new Date(year, monthIndex + 1, 1))}
+              aria-label="Next month"
+            >
+              <Icon name="next" size={16} />
+            </button>
+          </div>
+          <div className="calendar-week">
+            {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+              <span key={`${day}-${index}`}>{day}</span>
+            ))}
+          </div>
+          <div className="calendar-days">
+            {cells.map((day, index) =>
+              day ? (
+                <button
+                  className={value === toValue(day) ? "active" : ""}
+                  onClick={() => {
+                    onChange(toValue(day));
+                    setOpen(false);
+                  }}
+                  key={toValue(day)}
+                >
+                  {day}
+                </button>
+              ) : (
+                <i key={`blank-${index}`} />
+              ),
+            )}
+          </div>
+          <div className="calendar-footer">
+            <button
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+            >
+              Any date
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date();
+                const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                onChange(todayValue);
+                setMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+                setOpen(false);
+              }}
+            >
+              Today
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function triggerPrintWithDetails(type: "REQ" | "PO", documentNumber: string) {
@@ -805,7 +902,7 @@ function FilterTools({
         <div>
           <Icon name="search" size={18} />
           <input
-            type={/date|delivery/i.test(column) ? "date" : "text"}
+            type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Enter Search Value"
@@ -894,6 +991,7 @@ function Requests() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("REQ number");
+  const [view, setView] = useState("All My REQ's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState("");
@@ -901,12 +999,18 @@ function Requests() {
   const list = useMemo(
     () =>
       reqs
-        .filter((record) => matchesColumn(record, column, appliedQuery))
+        .filter(
+          (record) =>
+            Boolean(appliedQuery.trim()) &&
+            matchesColumn(record, column, appliedQuery) &&
+            (!view.includes("In Process") || record.status === "In process") &&
+            (!view.includes("Approved") || record.status === "Approved"),
+        )
         .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [appliedQuery, column, selectedDate, sort, direction],
+    [appliedQuery, column, view, selectedDate, sort, direction],
   );
   if (selected) return <ReqDetail record={selected} close={() => setSelected(null)} />;
   return (
@@ -915,7 +1019,11 @@ function Requests() {
       <div className="content">
         <div className="fixed-view">
           <span>REQ view</span>
-          <b>All My REQ's</b>
+          <select value={view} onChange={(e) => setView(e.target.value)}>
+            {reqViews.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
         </div>
         <FilterTools
           query={query}
@@ -937,14 +1045,7 @@ function Requests() {
           direction={direction}
           setDirection={setDirection}
           extra={
-            <label>
-              <span>REQ date</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </label>
+            <ModernDatePicker label="REQ date" value={selectedDate} onChange={setSelectedDate} />
           }
         />
         <ListHead text={`${list.length} requisitions`} />
@@ -962,8 +1063,12 @@ function Requests() {
           {!list.length && (
             <div className="empty">
               <Icon name="search" size={30} />
-              <b>No requisitions found</b>
-              <small>Try another search or filter.</small>
+              <b>{appliedQuery ? "No requisitions found" : "Search to load requests"}</b>
+              <small>
+                {appliedQuery
+                  ? "Try another search value or filter."
+                  : "Enter 0 as the Search Value to see the latest requests."}
+              </small>
             </div>
           )}
         </div>
@@ -1019,6 +1124,7 @@ function Orders() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [column, setColumn] = useState("PO number");
+  const [view, setView] = useState("All PO's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState("");
@@ -1026,12 +1132,18 @@ function Orders() {
   const list = useMemo(
     () =>
       orders
-        .filter((record) => matchesColumn(record, column, appliedQuery))
+        .filter(
+          (record) =>
+            Boolean(appliedQuery.trim()) &&
+            matchesColumn(record, column, appliedQuery) &&
+            (!view.includes("Accepted") || record.status === "Accepted") &&
+            (!view.includes("In Process") || record.status === "Processing"),
+        )
         .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [appliedQuery, column, selectedDate, sort, direction],
+    [appliedQuery, column, view, selectedDate, sort, direction],
   );
   if (selected) return <PoDetail record={selected} close={() => setSelected(null)} />;
   return (
@@ -1040,7 +1152,11 @@ function Orders() {
       <div className="content">
         <div className="fixed-view">
           <span>PO view</span>
-          <b>All PO's</b>
+          <select value={view} onChange={(e) => setView(e.target.value)}>
+            {poViews.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
         </div>
         <FilterTools
           query={query}
@@ -1061,14 +1177,7 @@ function Orders() {
           direction={direction}
           setDirection={setDirection}
           extra={
-            <label>
-              <span>PO date</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </label>
+            <ModernDatePicker label="PO date" value={selectedDate} onChange={setSelectedDate} />
           }
         />
         <ListHead text={`${list.length} purchase orders`} />
@@ -1106,6 +1215,17 @@ function Orders() {
               </footer>
             </button>
           ))}
+          {!list.length && (
+            <div className="empty">
+              <Icon name="search" size={30} />
+              <b>{appliedQuery ? "No purchase orders found" : "Search to load purchase orders"}</b>
+              <small>
+                {appliedQuery
+                  ? "Try another search value or filter."
+                  : "Enter 0 as the Search Value to see the latest purchase orders."}
+              </small>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -1138,6 +1258,25 @@ function OrderList() {
     <>
       <Header title="Order List" />
       <div className="content">
+        <section className="entry-panel">
+          <label>
+            <span>Select Entry</span>
+            <select
+              value={entry}
+              onChange={(e) => {
+                setEntry(e.target.value);
+                setQuery("");
+                setAppliedQuery("");
+              }}
+            >
+              <option value="">Select Entry</option>
+              {[...new Set(orderRows.map((item) => item.location))].map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <small>Select a store to load its Order Sheet iframe.</small>
+        </section>
         <FilterTools
           query={query}
           setQuery={setQuery}
@@ -1169,22 +1308,6 @@ function OrderList() {
           setDirection={setDirection}
           extra={
             <>
-              <label>
-                <span>Order Sheet</span>
-                <select
-                  value={entry}
-                  onChange={(e) => {
-                    setEntry(e.target.value);
-                    setQuery("");
-                    setAppliedQuery("");
-                  }}
-                >
-                  <option value="">Select Entry</option>
-                  {[...new Set(orderRows.map((item) => item.location))].map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-              </label>
               <label className="native-check">
                 <input
                   type="checkbox"
@@ -1255,9 +1378,6 @@ function OrderList() {
             </article>
           ))}
         </div>
-        <button className="fab" aria-label="Add order list item">
-          <Icon name="plus" />
-        </button>
       </div>
     </>
   );
