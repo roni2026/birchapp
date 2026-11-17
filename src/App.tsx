@@ -1254,8 +1254,18 @@ function OrderList() {
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
   const [entry, setEntry] = useState("");
+  const [entryOptions, setEntryOptions] = useState<string[]>([]);
   const [parValues, setParValues] = useState(false);
   const [showOnHand, setShowOnHand] = useState(false);
+  useEffect(() => {
+    const receiveEntries = (event: Event) => {
+      const entries = (event as CustomEvent<{ entries?: string[] }>).detail?.entries;
+      if (Array.isArray(entries)) setEntryOptions(entries.filter(Boolean));
+    };
+    window.addEventListener("birchstreet:order-sheet-entries", receiveEntries);
+    window.dispatchEvent(new CustomEvent("birchstreet:request-order-sheet-entries"));
+    return () => window.removeEventListener("birchstreet:order-sheet-entries", receiveEntries);
+  }, []);
   const list = useMemo(
     () =>
       orderRows
@@ -1279,13 +1289,22 @@ function OrderList() {
             <select
               value={entry}
               onChange={(e) => {
-                setEntry(e.target.value);
+                const nextEntry = e.target.value;
+                setEntry(nextEntry);
                 setQuery("");
                 setAppliedQuery("");
+                window.dispatchEvent(
+                  new CustomEvent("birchstreet:select-order-sheet-entry", {
+                    detail: { entry: nextEntry },
+                  }),
+                );
               }}
+              disabled={!entryOptions.length}
             >
-              <option value="">Select Entry</option>
-              {[...new Set(orderRows.map((item) => item.location))].map((value) => (
+              <option value="">
+                {entryOptions.length ? "Select Entry" : "Loading entries from BirchStreet…"}
+              </option>
+              {entryOptions.map((value) => (
                 <option key={value}>{value}</option>
               ))}
             </select>
