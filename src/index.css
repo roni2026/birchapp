@@ -794,6 +794,30 @@ header {
   background: var(--aqua);
   border-color: var(--aqua);
 }
+.advanced-actions {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding-top: 2px;
+}
+.outside-toggle {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  margin-bottom: 7px;
+  border: 1px solid #d8ebe7;
+  border-radius: 11px;
+  color: #315c5b;
+  background: #edf6f4;
+  font-size: 9px;
+  font-weight: 700;
+}
+.outside-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--aqua);
+}
 .sort-row {
   display: grid;
   grid-template-columns: 1fr 112px;
@@ -1687,6 +1711,11 @@ header {
   background: #1d2b38;
 }
 :root[data-theme="dark"] .entry-panel {
+  background: #18302f;
+  border-color: #294a48;
+}
+:root[data-theme="dark"] .outside-toggle {
+  color: #b9ddda;
   background: #18302f;
   border-color: #294a48;
 }

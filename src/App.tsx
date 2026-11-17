@@ -1289,6 +1289,14 @@ function OrderList() {
           </label>
           <small>Select a store to load its Order Sheet iframe.</small>
         </section>
+        <label className="outside-toggle">
+          <input
+            type="checkbox"
+            checked={showOnHand}
+            onChange={(e) => setShowOnHand(e.target.checked)}
+          />
+          <span>Show on hand quantities</span>
+        </label>
         <FilterTools
           query={query}
           setQuery={setQuery}
@@ -1328,14 +1336,18 @@ function OrderList() {
                 />
                 <span>Par values</span>
               </label>
-              <label className="native-check">
-                <input
-                  type="checkbox"
-                  checked={showOnHand}
-                  onChange={(e) => setShowOnHand(e.target.checked)}
-                />
-                <span>Show on hand quantities</span>
-              </label>
+              <div className="action-strip advanced-actions">
+                {[
+                  "Create REQ",
+                  "Add to REQ",
+                  "Clear all qty",
+                  "Item Search",
+                  "Add Item",
+                  "More",
+                ].map((action) => (
+                  <button key={action}>{action}</button>
+                ))}
+              </div>
             </>
           }
         />
@@ -1345,13 +1357,6 @@ function OrderList() {
         {entry && !appliedQuery && (
           <p className="order-instruction">Enter a Search Value, then tap Search.</p>
         )}
-        <div className="action-strip">
-          {["Create REQ", "Add to REQ", "Clear all qty", "Item Search", "Add Item", "More"].map(
-            (action) => (
-              <button key={action}>{action}</button>
-            ),
-          )}
-        </div>
         <ListHead text={`${list.length} order list items`} />
         <div className="stack">
           {list.map((item) => (
@@ -1442,14 +1447,21 @@ function ItemList() {
           ]}
           direction={direction}
           setDirection={setDirection}
+          extra={
+            <div className="action-strip advanced-actions">
+              {[
+                "Item Request",
+                "Add to OS",
+                "Remove from OS",
+                "Print",
+                "Create PO",
+                "Add to PO",
+              ].map((action) => (
+                <button key={action}>{action}</button>
+              ))}
+            </div>
+          }
         />
-        <div className="action-strip">
-          {["Item Request", "Add to OS", "Remove from OS", "Print", "Create PO", "Add to PO"].map(
-            (action) => (
-              <button key={action}>{action}</button>
-            ),
-          )}
-        </div>
         <ListHead text={`${list.length} inventory items`} />
         <div className="stack">
           {list.map((item) => (
