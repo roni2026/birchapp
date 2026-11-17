@@ -866,6 +866,7 @@ function FilterTools({
   to,
   setTo,
   extra,
+  belowSearch,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -884,6 +885,7 @@ function FilterTools({
   to?: string;
   setTo?: (value: string) => void;
   extra?: ReactNode;
+  belowSearch?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -919,6 +921,7 @@ function FilterTools({
           </button>
         </div>
       </div>
+      {belowSearch}
       <button
         className={`advanced-toggle ${expanded ? "open" : ""}`}
         onClick={() => setExpanded(!expanded)}
@@ -1287,21 +1290,22 @@ function OrderList() {
               ))}
             </select>
           </label>
-          <small>Select a store to load its Order Sheet iframe.</small>
         </section>
-        <label className="outside-toggle">
-          <input
-            type="checkbox"
-            checked={showOnHand}
-            onChange={(e) => setShowOnHand(e.target.checked)}
-          />
-          <span>Show on hand quantities</span>
-        </label>
         <FilterTools
           query={query}
           setQuery={setQuery}
           onSearch={() => setAppliedQuery(query)}
           searchDisabled={!entry}
+          belowSearch={
+            <label className="outside-toggle">
+              <input
+                type="checkbox"
+                checked={showOnHand}
+                onChange={(e) => setShowOnHand(e.target.checked)}
+              />
+              <span>Show on hand quantities</span>
+            </label>
+          }
           column={column}
           setColumn={setColumn}
           columns={[
