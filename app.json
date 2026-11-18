@@ -15,8 +15,7 @@
         "foregroundImage": "./public/outrigger-logo.png",
         "backgroundColor": "#0D1A2D"
       },
-      "permissions": ["android.permission.INTERNET"],
-      "usesCleartextTraffic": false
+      "permissions": ["android.permission.INTERNET"]
     },
     "assetBundlePatterns": ["**/*"],
     "extra": {
