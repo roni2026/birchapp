@@ -8,7 +8,7 @@ let html = await readFile(join(dist, "index.html"), "utf8");
 
 for (const match of [...html.matchAll(/<link[^>]+href="([^"]+\.css)"[^>]*>/g)]) {
   const css = await readFile(join(dist, match[1].replace(/^\//, "")), "utf8");
-  html = html.replace(match[0], `<style>${css}</style>`);
+  html = html.replace(match[0], () => `<style>${css}</style>`);
 }
 
 for (const match of [...html.matchAll(/<script[^>]+src="([^"]+\.js)"[^>]*><\/script>/g)]) {
@@ -16,12 +16,21 @@ for (const match of [...html.matchAll(/<script[^>]+src="([^"]+\.js)"[^>]*><\/scr
   const logo = await readFile(join(root, "public", "outrigger-logo.png"));
   const logoUri = `data:image/png;base64,${logo.toString("base64")}`;
   js = js.replaceAll("/outrigger-logo.png", logoUri).replaceAll("</script>", "<\\/script>");
-  html = html.replace(match[0], `<script type="module">${js}</script>`);
+  // A replacement callback keeps JavaScript tokens such as `$&` and `$`` literal.
+  // Passing the bundle as a replacement string would expand those tokens into HTML.
+  html = html.replace(match[0], () => `<script type="module">${js}</script>`);
 }
 
 html = html
   .replace(/<link[^>]+rel="manifest"[^>]*>/g, "")
   .replace(/<link[^>]+rel="(?:icon|apple-touch-icon)"[^>]*>/g, "");
+
+const remainingExternalAssets = html.match(
+  /<(?:script|link)\b[^>]+(?:src|href)="\/assets\/[^"]+"/i,
+);
+if (remainingExternalAssets) {
+  throw new Error(`Failed to inline web asset: ${remainingExternalAssets[0]}`);
+}
 
 const target = join(root, "native", "generatedWebApp.ts");
 await mkdir(dirname(target), { recursive: true });
