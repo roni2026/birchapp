@@ -10,6 +10,57 @@ import {
 } from "react";
 
 type Tab = "requests" | "orders" | "orderList" | "items" | "settings" | "inbox" | "more";
+type PortalUser = { name: string; account: string };
+type LogLevel = "info" | "warn" | "error";
+type LogEntry = {
+  id: string;
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  detail?: string;
+};
+type ReqRecord = {
+  id: string;
+  title: string;
+  area: string;
+  amount: string;
+  status: string;
+  tone: string;
+  date: string;
+  delivery: string;
+  purchaseType: string;
+};
+type PoRecord = {
+  id: string;
+  supplier: string;
+  subject: string;
+  amount: string;
+  status: string;
+  date: string;
+  delivery: string;
+  poType: string;
+};
+type OrderRow = {
+  part: string;
+  description: string;
+  uom: string;
+  quantity: number;
+  source: string;
+  location: string;
+  category: string;
+  date: string;
+};
+type ItemRecord = {
+  part: string;
+  description: string;
+  supplier: string;
+  onHand: number;
+  invUom: string;
+  orderUom: string;
+  price: number;
+  category: string;
+  date: string;
+};
 type IconName =
   | "home"
   | "file"
@@ -100,163 +151,39 @@ function Logo({ size = 52 }: { size?: number }) {
   );
 }
 
-const reqs = [
-  {
-    id: "REQ-MAM-000039970",
-    title: "F&B Living Water PO-20675",
-    area: "Main Kitchen",
-    amount: "$2,548.90",
-    status: "Approval pending",
-    tone: "amber",
-    date: "2026-11-17",
-    delivery: "2026-11-18",
-    purchaseType: "General",
-  },
-  {
-    id: "REQ-MAM-000039959",
-    title: "Store Allowance – November",
-    area: "Non-operating Dept",
-    amount: "$59.76",
-    status: "Approved",
-    tone: "green",
-    date: "2026-11-16",
-    delivery: "2026-11-17",
-    purchaseType: "Food",
-  },
-  {
-    id: "REQ-MAM-000039955",
-    title: "Maintenance Print Lab PO-21847",
-    area: "Maintenance",
-    amount: "$280.15",
-    status: "In process",
-    tone: "blue",
-    date: "2026-11-14",
-    delivery: "2026-11-16",
-    purchaseType: "General",
-  },
-];
-const orders = [
-  {
-    id: "PO-MAM-000022483",
-    supplier: "Barque Investment Pvt Ltd",
-    subject: "Store Local Food Order",
-    amount: "$1,404.00",
-    status: "Accepted",
-    date: "2026-11-14",
-    delivery: "2026-11-15",
-    poType: "Storeroom",
-  },
-  {
-    id: "PO-MAM-000022482",
-    supplier: "Euro Marketing Private Limited",
-    subject: "Store Local Food Order",
-    amount: "MVR 1,050.02",
-    status: "Accepted",
-    date: "2026-11-13",
-    delivery: "2026-11-15",
-    poType: "Storeroom",
-  },
-  {
-    id: "PO-MAM-000022481",
-    supplier: "Maldives Quality Seafood",
-    subject: "Fresh seafood supply",
-    amount: "$865.50",
-    status: "Processing",
-    date: "2026-11-11",
-    delivery: "2026-11-14",
-    poType: "Direct",
-  },
-];
+const reqs: ReqRecord[] = [];
+const orders: PoRecord[] = [];
 
-const orderRows = [
-  {
-    part: "0001048",
-    description: "Still Water 500ml",
-    uom: "CS",
-    quantity: 12,
-    source: "Storeroom",
-    location: "MAM Store Main",
-    category: "Beverage",
-    date: "2026-11-17",
-  },
-  {
-    part: "0002381",
-    description: "Fresh Milk Full Cream 1L",
-    uom: "CTN",
-    quantity: 6,
-    source: "Supplier",
-    location: "Main Kitchen",
-    category: "Dairy",
-    date: "2026-11-16",
-  },
-  {
-    part: "0003197",
-    description: "Basmati Rice Premium 5kg",
-    uom: "BAG",
-    quantity: 8,
-    source: "Storeroom",
-    location: "Main Kitchen",
-    category: "Dry Food",
-    date: "2026-11-14",
-  },
-  {
-    part: "0004412",
-    description: "All Purpose Cleaner 5L",
-    uom: "BTL",
-    quantity: 4,
-    source: "Supplier",
-    location: "Housekeeping",
-    category: "Cleaning",
-    date: "2026-11-12",
-  },
-];
+const LOG_KEY = "outrigger-activity-log-v1";
 
-const itemRows = [
-  {
-    part: "0001048",
-    description: "Still Water 500ml",
-    supplier: "Euro Marketing",
-    onHand: 84,
-    invUom: "BTL",
-    orderUom: "CS",
-    price: 18.5,
-    category: "Beverage",
-    date: "2026-11-17",
-  },
-  {
-    part: "0002381",
-    description: "Fresh Milk Full Cream 1L",
-    supplier: "Best Buy Maldives",
-    onHand: 18,
-    invUom: "PC",
-    orderUom: "CTN",
-    price: 32,
-    category: "Dairy",
-    date: "2026-11-16",
-  },
-  {
-    part: "0003197",
-    description: "Basmati Rice Premium 5kg",
-    supplier: "Barque Investment",
-    onHand: 31,
-    invUom: "BAG",
-    orderUom: "BAG",
-    price: 21.75,
-    category: "Dry Food",
-    date: "2026-11-14",
-  },
-  {
-    part: "0004412",
-    description: "All Purpose Cleaner 5L",
-    supplier: "CleanCo Maldives",
-    onHand: 7,
-    invUom: "BTL",
-    orderUom: "CTN",
-    price: 44.25,
-    category: "Cleaning",
-    date: "2026-11-12",
-  },
-];
+function readLogs(): LogEntry[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLog(
+  level: LogLevel,
+  message: string,
+  detail?: Record<string, unknown> | string,
+  timestamp = new Date().toISOString(),
+) {
+  const logs = readLogs();
+  const detailText =
+    typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : undefined;
+  const entry: LogEntry = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp,
+    level,
+    message,
+    detail: detailText,
+  };
+  localStorage.setItem(LOG_KEY, JSON.stringify([entry, ...logs].slice(0, 500)));
+  window.dispatchEvent(new CustomEvent("outrigger:logs-changed"));
+}
 
 const reqViews = [
   "All My REQ's",
@@ -595,7 +522,34 @@ function PoDetail({ record, close }: { record: (typeof orders)[number]; close: (
   );
 }
 
-function Login({ enter }: { enter: () => void }) {
+function ActivityLog({ logs, clear }: { logs: LogEntry[]; clear: () => void }) {
+  return (
+    <div className="activity-log">
+      <div className="log-actions">
+        <strong>Newest first</strong>
+        <button onClick={clear}>Clear log</button>
+      </div>
+      {logs.length ? (
+        <div className="log-list">
+          {logs.map((entry) => (
+            <article className={`log-entry ${entry.level}`} key={entry.id}>
+              <div>
+                <b>{entry.level.toUpperCase()}</b>
+                <time>{new Date(entry.timestamp).toLocaleString()}</time>
+              </div>
+              <p>{entry.message}</p>
+              {entry.detail && <code>{entry.detail}</code>}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="log-empty">No activity has been recorded yet.</p>
+      )}
+    </div>
+  );
+}
+
+function Login({ enter }: { enter: (user: PortalUser) => void }) {
   const saved = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("outrigger-credentials-v2") || "null");
@@ -608,20 +562,55 @@ function Login({ enter }: { enter: () => void }) {
   const [login, setLogin] = useState(saved?.login || "");
   const [password, setPassword] = useState(saved?.password || "");
   const [remember, setRemember] = useState(Boolean(saved));
+  const [pending, setPending] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>(readLogs);
+  useEffect(() => {
+    const update = () => setLogs(readLogs());
+    window.addEventListener("outrigger:logs-changed", update);
+    return () => window.removeEventListener("outrigger:logs-changed", update);
+  }, []);
+  useEffect(() => {
+    const receiveResult = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          success?: boolean;
+          error?: string;
+          user?: PortalUser;
+        }>
+      ).detail;
+      setPending(false);
+      if (!detail?.success) {
+        setError(detail?.error || "BirchStreet login failed.");
+        return;
+      }
+      if (remember) {
+        localStorage.setItem("outrigger-credentials-v2", JSON.stringify({ login, password }));
+      } else {
+        localStorage.removeItem("outrigger-credentials-v2");
+      }
+      const user = detail.user || { name: login, account: "Mktplc 458" };
+      localStorage.setItem("outrigger-portal-user-v1", JSON.stringify(user));
+      setError("");
+      writeLog("info", `Login confirmed for ${user.name}`, { account: user.account });
+      enter(user);
+    };
+    window.addEventListener("birchstreet:login-result", receiveResult);
+    return () => window.removeEventListener("birchstreet:login-result", receiveResult);
+  }, [enter, login, password, remember]);
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!login.trim() || !password)
       return setError("Enter your BirchStreet Login ID and password.");
-    if (remember)
-      localStorage.setItem("outrigger-credentials-v2", JSON.stringify({ login, password }));
-    else localStorage.removeItem("outrigger-credentials-v2");
+    if (pending) return;
+    setPending(true);
+    setError("");
+    writeLog("info", "Login requested", { loginID: login.trim(), subscriberID: "458" });
     window.dispatchEvent(
       new CustomEvent("birchstreet:login", {
         detail: { loginID: login.trim(), password, subscriberID: "458" },
       }),
     );
-    setError("");
-    enter();
   }
   return (
     <main className="login-page">
@@ -679,13 +668,28 @@ function Login({ enter }: { enter: () => void }) {
             <span>Save my username and password on this device</span>
           </label>
           {error && <p className="error">{error}</p>}
-          <button className="sign-in">
-            Sign in securely <Icon name="next" />
+          <button className="sign-in" disabled={pending}>
+            {pending ? "Connecting to BirchStreet…" : "Sign in securely"}{" "}
+            {!pending && <Icon name="next" />}
           </button>
         </form>
         <p className="secure">
           <Icon name="shield" size={17} /> Saved credentials remain on this device only.
         </p>
+        <button className="login-log-toggle" onClick={() => setShowLogs((current) => !current)}>
+          <Icon name="server" size={16} />
+          {showLogs ? "Hide activity & error log" : `View activity & error log (${logs.length})`}
+        </button>
+        {showLogs && (
+          <ActivityLog
+            logs={logs}
+            clear={() => {
+              localStorage.removeItem(LOG_KEY);
+              setLogs([]);
+              window.dispatchEvent(new CustomEvent("outrigger:logs-changed"));
+            }}
+          />
+        )}
       </section>
       <p className="property">Outrigger Maldives Maafushivaru Resort</p>
     </main>
@@ -702,10 +706,6 @@ function Header({ title, eyebrow = "OUTRIGGER" }: { title: string; eyebrow?: str
           <strong>{title}</strong>
         </div>
       </div>
-      <button className="bell" aria-label="Notifications">
-        <Icon name="bell" />
-        <i>3</i>
-      </button>
     </header>
   );
 }
@@ -1014,34 +1014,51 @@ function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
   const result =
     typeof first === "number" && typeof second === "number"
       ? first - second
-      : first.localeCompare(String(second), undefined, { numeric: true });
+      : String(first).localeCompare(String(second), undefined, { numeric: true });
   return direction === "asc" ? result : -result;
 }
 
 function Requests() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [records, setRecords] = useState<ReqRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [column, setColumn] = useState("REQ number");
   const [view, setView] = useState("All REQ's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState("");
-  const [selected, setSelected] = useState<(typeof reqs)[number] | null>(null);
+  const [selected, setSelected] = useState<ReqRecord | null>(null);
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; records?: ReqRecord[] }>).detail;
+      if (detail?.section !== "requests") return;
+      setRecords(Array.isArray(detail.records) ? detail.records : []);
+      setLoading(false);
+      setSearchError("");
+    };
+    const receiveError = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; message?: string }>).detail;
+      if (detail?.section !== "requests") return;
+      setLoading(false);
+      setSearchError(detail.message || "Unable to load requisitions from BirchStreet.");
+    };
+    window.addEventListener("birchstreet:search-results", receive);
+    window.addEventListener("birchstreet:search-error", receiveError);
+    return () => {
+      window.removeEventListener("birchstreet:search-results", receive);
+      window.removeEventListener("birchstreet:search-error", receiveError);
+    };
+  }, []);
   const list = useMemo(
     () =>
-      reqs
-        .filter(
-          (record) =>
-            Boolean(appliedQuery.trim()) &&
-            matchesColumn(record, column, appliedQuery) &&
-            (!view.includes("In Process") || record.status === "In process") &&
-            (!view.includes("Approved") || record.status === "Approved"),
-        )
+      records
         .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [appliedQuery, column, view, selectedDate, sort, direction],
+    [records, selectedDate, sort, direction],
   );
   if (selected) return <ReqDetail record={selected} close={() => setSelected(null)} />;
   return (
@@ -1059,7 +1076,18 @@ function Requests() {
         <FilterTools
           query={query}
           setQuery={setQuery}
-          onSearch={() => setAppliedQuery(query)}
+          onSearch={() => {
+            if (!query.trim() || loading) return;
+            setAppliedQuery(query);
+            setLoading(true);
+            setSearchError("");
+            setRecords([]);
+            window.dispatchEvent(
+              new CustomEvent("birchstreet:search", {
+                detail: { section: "requests", view, column, query: query.trim() },
+              }),
+            );
+          }}
           column={column}
           setColumn={setColumn}
           columns={reqSearchColumns.map((label) => ({ value: label, label }))}
@@ -1093,12 +1121,21 @@ function Requests() {
           ))}
           {!list.length && (
             <div className="empty">
-              <Icon name="search" size={30} />
-              <b>{appliedQuery ? "No requisitions found" : "Search to load requests"}</b>
+              <Icon name={loading ? "refresh" : "search"} size={30} />
+              <b>
+                {loading
+                  ? "Searching BirchStreet…"
+                  : searchError
+                    ? "BirchStreet search failed"
+                    : appliedQuery
+                      ? "No requisitions found"
+                      : "Search to load requests"}
+              </b>
               <small>
-                {appliedQuery
-                  ? "Try another search value or filter."
-                  : "Enter 0 as the Search Value to see the latest requests."}
+                {searchError ||
+                  (appliedQuery
+                    ? "BirchStreet returned no matching requisitions."
+                    : "Enter 0 as the Search Value to see the latest requests.")}
               </small>
             </div>
           )}
@@ -1108,29 +1145,10 @@ function Requests() {
   );
 }
 function ListHead({ text }: { text: string }) {
-  const [state, setState] = useState<"idle" | "syncing" | "synced">("idle");
-  const sync = () => {
-    if (state === "syncing") return;
-    setState("syncing");
-    window.dispatchEvent(
-      new CustomEvent("birchstreet:sync", {
-        detail: { list: text },
-      }),
-    );
-    window.setTimeout(() => {
-      setState("synced");
-      window.setTimeout(() => setState("idle"), 1200);
-    }, 900);
-  };
   return (
     <div className="list-head">
       <b>{text}</b>
-      <button className={`sync-button ${state}`} onClick={sync}>
-        <span>
-          <Icon name={state === "synced" ? "check" : "refresh"} size={15} />
-        </span>
-        {state === "syncing" ? "Syncing" : state === "synced" ? "Synced" : "Sync"}
-      </button>
+      <small>Live BirchStreet results</small>
     </div>
   );
 }
@@ -1171,27 +1189,44 @@ function Doc({
 function Orders() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [records, setRecords] = useState<PoRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [column, setColumn] = useState("PO number");
   const [view, setView] = useState("All PO's");
   const [sort, setSort] = useState("date");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState("");
-  const [selected, setSelected] = useState<(typeof orders)[number] | null>(null);
+  const [selected, setSelected] = useState<PoRecord | null>(null);
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; records?: PoRecord[] }>).detail;
+      if (detail?.section !== "orders") return;
+      setRecords(Array.isArray(detail.records) ? detail.records : []);
+      setLoading(false);
+      setSearchError("");
+    };
+    const receiveError = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; message?: string }>).detail;
+      if (detail?.section !== "orders") return;
+      setLoading(false);
+      setSearchError(detail.message || "Unable to load purchase orders from BirchStreet.");
+    };
+    window.addEventListener("birchstreet:search-results", receive);
+    window.addEventListener("birchstreet:search-error", receiveError);
+    return () => {
+      window.removeEventListener("birchstreet:search-results", receive);
+      window.removeEventListener("birchstreet:search-error", receiveError);
+    };
+  }, []);
   const list = useMemo(
     () =>
-      orders
-        .filter(
-          (record) =>
-            Boolean(appliedQuery.trim()) &&
-            matchesColumn(record, column, appliedQuery) &&
-            (!view.includes("Accepted") || record.status === "Accepted") &&
-            (!view.includes("In Process") || record.status === "Processing"),
-        )
+      records
         .filter((record) => !selectedDate || record.date === selectedDate)
         .sort((a, b) =>
           compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
         ),
-    [appliedQuery, column, view, selectedDate, sort, direction],
+    [records, selectedDate, sort, direction],
   );
   if (selected) return <PoDetail record={selected} close={() => setSelected(null)} />;
   return (
@@ -1209,7 +1244,18 @@ function Orders() {
         <FilterTools
           query={query}
           setQuery={setQuery}
-          onSearch={() => setAppliedQuery(query)}
+          onSearch={() => {
+            if (!query.trim() || loading) return;
+            setAppliedQuery(query);
+            setLoading(true);
+            setSearchError("");
+            setRecords([]);
+            window.dispatchEvent(
+              new CustomEvent("birchstreet:search", {
+                detail: { section: "orders", view, column, query: query.trim() },
+              }),
+            );
+          }}
           column={column}
           setColumn={setColumn}
           columns={poSearchColumns.map((label) => ({ value: label, label }))}
@@ -1265,12 +1311,21 @@ function Orders() {
           ))}
           {!list.length && (
             <div className="empty">
-              <Icon name="search" size={30} />
-              <b>{appliedQuery ? "No purchase orders found" : "Search to load purchase orders"}</b>
+              <Icon name={loading ? "refresh" : "search"} size={30} />
+              <b>
+                {loading
+                  ? "Searching BirchStreet…"
+                  : searchError
+                    ? "BirchStreet search failed"
+                    : appliedQuery
+                      ? "No purchase orders found"
+                      : "Search to load purchase orders"}
+              </b>
               <small>
-                {appliedQuery
-                  ? "Try another search value or filter."
-                  : "Enter 0 as the Search Value to see the latest purchase orders."}
+                {searchError ||
+                  (appliedQuery
+                    ? "BirchStreet returned no matching purchase orders."
+                    : "Enter 0 as the Search Value to see the latest purchase orders.")}
               </small>
             </div>
           )}
@@ -1283,13 +1338,14 @@ function Orders() {
 function OrderList() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [records, setRecords] = useState<OrderRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [column, setColumn] = useState("Part #");
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
   const [entry, setEntry] = useState("");
   const [entryOptions, setEntryOptions] = useState<string[]>([]);
-  const [parValues, setParValues] = useState(false);
-  const [showOnHand, setShowOnHand] = useState(false);
   useEffect(() => {
     const receiveEntries = (event: Event) => {
       const entries = (event as CustomEvent<{ entries?: string[] }>).detail?.entries;
@@ -1299,18 +1355,33 @@ function OrderList() {
     window.dispatchEvent(new CustomEvent("birchstreet:request-order-sheet-entries"));
     return () => window.removeEventListener("birchstreet:order-sheet-entries", receiveEntries);
   }, []);
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; records?: OrderRow[] }>).detail;
+      if (detail?.section !== "orderList") return;
+      setRecords(Array.isArray(detail.records) ? detail.records : []);
+      setLoading(false);
+      setSearchError("");
+    };
+    const receiveError = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; message?: string }>).detail;
+      if (detail?.section !== "orderList") return;
+      setLoading(false);
+      setSearchError(detail.message || "Unable to load the Order Sheet from BirchStreet.");
+    };
+    window.addEventListener("birchstreet:search-results", receive);
+    window.addEventListener("birchstreet:search-error", receiveError);
+    return () => {
+      window.removeEventListener("birchstreet:search-results", receive);
+      window.removeEventListener("birchstreet:search-error", receiveError);
+    };
+  }, []);
   const list = useMemo(
     () =>
-      orderRows
-        .filter(
-          (record) =>
-            Boolean(entry && appliedQuery.trim()) && matchesColumn(record, column, appliedQuery),
-        )
-        .filter((record) => !entry || record.location === entry)
-        .sort((a, b) =>
-          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
-        ),
-    [appliedQuery, column, entry, sort, direction],
+      records.sort((a, b) =>
+        compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+      ),
+    [records, sort, direction],
   );
   return (
     <>
@@ -1326,6 +1397,8 @@ function OrderList() {
                 setEntry(nextEntry);
                 setQuery("");
                 setAppliedQuery("");
+                setRecords([]);
+                setSearchError("");
                 window.dispatchEvent(
                   new CustomEvent("birchstreet:select-order-sheet-entry", {
                     detail: { entry: nextEntry },
@@ -1344,18 +1417,24 @@ function OrderList() {
         <FilterTools
           query={query}
           setQuery={setQuery}
-          onSearch={() => setAppliedQuery(query)}
+          onSearch={() => {
+            if (!entry || !query.trim() || loading) return;
+            setAppliedQuery(query);
+            setLoading(true);
+            setSearchError("");
+            setRecords([]);
+            window.dispatchEvent(
+              new CustomEvent("birchstreet:search", {
+                detail: {
+                  section: "orderList",
+                  entry,
+                  column,
+                  query: query.trim(),
+                },
+              }),
+            );
+          }}
           searchDisabled={!entry}
-          belowSearch={
-            <label className="outside-toggle">
-              <input
-                type="checkbox"
-                checked={showOnHand}
-                onChange={(e) => setShowOnHand(e.target.checked)}
-              />
-              <span>Show on hand quantities</span>
-            </label>
-          }
           column={column}
           setColumn={setColumn}
           columns={[
@@ -1380,30 +1459,6 @@ function OrderList() {
           ]}
           direction={direction}
           setDirection={setDirection}
-          extra={
-            <>
-              <label className="native-check">
-                <input
-                  type="checkbox"
-                  checked={parValues}
-                  onChange={(e) => setParValues(e.target.checked)}
-                />
-                <span>Par values</span>
-              </label>
-              <div className="action-strip advanced-actions">
-                {[
-                  "Create REQ",
-                  "Add to REQ",
-                  "Clear all qty",
-                  "Item Search",
-                  "Add Item",
-                  "More",
-                ].map((action) => (
-                  <button key={action}>{action}</button>
-                ))}
-              </div>
-            </>
-          }
         />
         {!entry && (
           <p className="order-instruction">Select the appropriate store from Select Entry first.</p>
@@ -1433,12 +1488,6 @@ function OrderList() {
                   <small>CATEGORY</small>
                   <b>{item.category}</b>
                 </span>
-                {showOnHand && (
-                  <span>
-                    <small>ON HAND</small>
-                    <b>{item.quantity * 3}</b>
-                  </span>
-                )}
               </div>
               <footer>
                 <span>
@@ -1448,6 +1497,19 @@ function OrderList() {
               </footer>
             </article>
           ))}
+          {entry && appliedQuery && !list.length && (
+            <div className="empty">
+              <Icon name={loading ? "refresh" : "search"} size={30} />
+              <b>
+                {loading
+                  ? "Searching BirchStreet…"
+                  : searchError
+                    ? "BirchStreet search failed"
+                    : "No Order Sheet items found"}
+              </b>
+              <small>{searchError || "BirchStreet returned no matching Order Sheet items."}</small>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -1457,17 +1519,39 @@ function OrderList() {
 function ItemList() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
+  const [records, setRecords] = useState<ItemRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [column, setColumn] = useState("Part #");
   const [sort, setSort] = useState("part");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; records?: ItemRecord[] }>).detail;
+      if (detail?.section !== "items") return;
+      setRecords(Array.isArray(detail.records) ? detail.records : []);
+      setLoading(false);
+      setSearchError("");
+    };
+    const receiveError = (event: Event) => {
+      const detail = (event as CustomEvent<{ section?: string; message?: string }>).detail;
+      if (detail?.section !== "items") return;
+      setLoading(false);
+      setSearchError(detail.message || "Unable to load items from BirchStreet.");
+    };
+    window.addEventListener("birchstreet:search-results", receive);
+    window.addEventListener("birchstreet:search-error", receiveError);
+    return () => {
+      window.removeEventListener("birchstreet:search-results", receive);
+      window.removeEventListener("birchstreet:search-error", receiveError);
+    };
+  }, []);
   const list = useMemo(
     () =>
-      itemRows
-        .filter((record) => matchesColumn(record, column, appliedQuery))
-        .sort((a, b) =>
-          compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
-        ),
-    [appliedQuery, column, sort, direction],
+      records.sort((a, b) =>
+        compareValues(a[sort as keyof typeof a], b[sort as keyof typeof b], direction),
+      ),
+    [records, sort, direction],
   );
   return (
     <>
@@ -1476,7 +1560,18 @@ function ItemList() {
         <FilterTools
           query={query}
           setQuery={setQuery}
-          onSearch={() => setAppliedQuery(query)}
+          onSearch={() => {
+            if (!query.trim() || loading) return;
+            setAppliedQuery(query);
+            setLoading(true);
+            setSearchError("");
+            setRecords([]);
+            window.dispatchEvent(
+              new CustomEvent("birchstreet:search", {
+                detail: { section: "items", column, query: query.trim() },
+              }),
+            );
+          }}
           column={column}
           setColumn={setColumn}
           columns={[
@@ -1501,20 +1596,6 @@ function ItemList() {
           ]}
           direction={direction}
           setDirection={setDirection}
-          extra={
-            <div className="action-strip advanced-actions">
-              {[
-                "Item Request",
-                "Add to OS",
-                "Remove from OS",
-                "Print",
-                "Create PO",
-                "Add to PO",
-              ].map((action) => (
-                <button key={action}>{action}</button>
-              ))}
-            </div>
-          }
         />
         <ListHead text={`${list.length} inventory items`} />
         <div className="stack">
@@ -1522,14 +1603,14 @@ function ItemList() {
             <article className="inventory-row" key={item.part}>
               <div className="row-top">
                 <span>PART # {item.part}</span>
-                <b>${item.price.toFixed(2)}</b>
+                <b>{item.price ? `$${item.price.toFixed(2)}` : "—"}</b>
               </div>
               <h3>{item.description}</h3>
               <p className="supplier">{item.supplier}</p>
               <div className="data-grid">
                 <span>
                   <small>ON HAND</small>
-                  <b>{item.onHand}</b>
+                  <b>{item.onHand || "—"}</b>
                 </span>
                 <span>
                   <small>INV UOM</small>
@@ -1546,6 +1627,26 @@ function ItemList() {
               </footer>
             </article>
           ))}
+          {!list.length && (
+            <div className="empty">
+              <Icon name={loading ? "refresh" : "search"} size={30} />
+              <b>
+                {loading
+                  ? "Searching BirchStreet…"
+                  : searchError
+                    ? "BirchStreet search failed"
+                    : appliedQuery
+                      ? "No items found"
+                      : "Search to load items"}
+              </b>
+              <small>
+                {searchError ||
+                  (appliedQuery
+                    ? "BirchStreet returned no matching items."
+                    : "Enter a Search Value to query the BirchStreet Item List.")}
+              </small>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -1613,7 +1714,7 @@ function Inbox() {
   );
 }
 
-function More({ exit }: { exit: () => void }) {
+function More({ exit, user }: { exit: () => void; user: PortalUser }) {
   const menu: [IconName, string, string][] = [
     ["box", "Inventory", "Stock, transfers and adjustments"],
     ["sheet", "Order sheets", "Build and submit orders"],
@@ -1628,8 +1729,8 @@ function More({ exit }: { exit: () => void }) {
         <section className="profile">
           <Logo size={58} />
           <div>
-            <b>Shibumon A. Bhaskaran</b>
-            <span>Marketplace 458 / 2754</span>
+            <b>{user.name}</b>
+            <span>{user.account || "Mktplc 458"}</span>
             <small>Maafushivaru Resort</small>
           </div>
         </section>
@@ -1660,11 +1761,20 @@ function Settings({
   exit,
   theme,
   setTheme,
+  user,
 }: {
   exit: () => void;
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
+  user: PortalUser;
 }) {
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>(readLogs);
+  useEffect(() => {
+    const update = () => setLogs(readLogs());
+    window.addEventListener("outrigger:logs-changed", update);
+    return () => window.removeEventListener("outrigger:logs-changed", update);
+  }, []);
   return (
     <>
       <Header title="Settings" />
@@ -1672,8 +1782,8 @@ function Settings({
         <section className="profile">
           <Logo size={58} />
           <div>
-            <b>Shibumon A. Bhaskaran</b>
-            <span>Marketplace 458 / 2754</span>
+            <b>{user.name}</b>
+            <span>{user.account || "Mktplc 458"}</span>
             <small>Maafushivaru Resort</small>
           </div>
         </section>
@@ -1707,6 +1817,28 @@ function Settings({
             </div>
           </div>
         </section>
+        <section className="settings-card log-setting">
+          <button className="log-toggle" onClick={() => setShowLogs((current) => !current)}>
+            <span className="settings-icon">
+              <Icon name="server" />
+            </span>
+            <span>
+              <b>Activity & error log</b>
+              <small>{logs.length} saved events · stored on this device</small>
+            </span>
+            <Icon name="next" />
+          </button>
+          {showLogs && (
+            <ActivityLog
+              logs={logs}
+              clear={() => {
+                localStorage.removeItem(LOG_KEY);
+                setLogs([]);
+                window.dispatchEvent(new CustomEvent("outrigger:logs-changed"));
+              }}
+            />
+          )}
+        </section>
         <button className="exit" onClick={exit}>
           <Icon name="logout" /> Log out
         </button>
@@ -1720,10 +1852,12 @@ function Shell({
   exit,
   theme,
   setTheme,
+  user,
 }: {
   exit: () => void;
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
+  user: PortalUser;
 }) {
   const [tab, setTab] = useState<Tab>("requests");
   const [pullDistance, setPullDistance] = useState(0);
@@ -1733,14 +1867,35 @@ function Shell({
     const timeout = window.setTimeout(exit, 5 * 60 * 1000);
     return () => window.clearTimeout(timeout);
   }, [exit]);
+  useEffect(() => {
+    if (!refreshing) return;
+    const finish = (event: Event) => {
+      const section = (event as CustomEvent<{ section?: string }>).detail?.section;
+      if (section && section !== tab) return;
+      setRefreshing(false);
+      setPullDistance(0);
+    };
+    const timeout = window.setTimeout(() => {
+      setRefreshing(false);
+      setPullDistance(0);
+      writeLog("warn", `Refresh timed out for ${tab}`);
+    }, 16000);
+    window.addEventListener("birchstreet:search-results", finish);
+    window.addEventListener("birchstreet:search-error", finish);
+    return () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener("birchstreet:search-results", finish);
+      window.removeEventListener("birchstreet:search-error", finish);
+    };
+  }, [refreshing, tab]);
   const screens = {
     requests: <Requests />,
     orders: <Orders />,
     orderList: <OrderList />,
     items: <ItemList />,
-    settings: <Settings exit={exit} theme={theme} setTheme={setTheme} />,
+    settings: <Settings exit={exit} theme={theme} setTheme={setTheme} user={user} />,
     inbox: <Inbox />,
-    more: <More exit={exit} />,
+    more: <More exit={exit} user={user} />,
   };
   const nav: [Tab, string, IconName][] = [
     ["requests", "Requests", "file"],
@@ -1751,6 +1906,10 @@ function Shell({
   ];
   const refresh = useCallback(() => {
     if (refreshing) return;
+    if (!["requests", "orders", "orderList", "items"].includes(tab)) {
+      setPullDistance(0);
+      return;
+    }
     setRefreshing(true);
     setPullDistance(58);
     window.dispatchEvent(
@@ -1758,10 +1917,6 @@ function Shell({
         detail: { section: tab },
       }),
     );
-    window.setTimeout(() => {
-      setRefreshing(false);
-      setPullDistance(0);
-    }, 1100);
   }, [refreshing, tab]);
 
   function handleTouchStart(event: ReactTouchEvent<HTMLElement>) {
@@ -1834,17 +1989,99 @@ function Shell({
 
 export default function App() {
   const [inside, setInside] = useState(false);
-  const exit = useCallback(() => setInside(false), []);
+  const [user, setUser] = useState<PortalUser>(() => {
+    try {
+      return (
+        JSON.parse(localStorage.getItem("outrigger-portal-user-v1") || "null") || {
+          name: "BirchStreet user",
+          account: "Mktplc 458",
+        }
+      );
+    } catch {
+      return { name: "BirchStreet user", account: "Mktplc 458" };
+    }
+  });
+  const exit = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("birchstreet:logout"));
+    writeLog("info", "Logged out of the mobile app");
+    setInside(false);
+  }, []);
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("outrigger-theme") as "light" | "dark") || "light",
   );
+  useEffect(() => {
+    const receiveLog = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          timestamp?: string;
+          level?: LogLevel;
+          message?: string;
+          [key: string]: unknown;
+        }>
+      ).detail;
+      if (!detail?.message) return;
+      const { timestamp, level, message, ...rest } = detail;
+      writeLog(
+        level === "error" ? "error" : level === "warn" ? "warn" : "info",
+        message,
+        rest,
+        timestamp,
+      );
+    };
+    const captureError = (event: ErrorEvent) => {
+      writeLog("error", event.message || "Mobile interface error", {
+        source: event.filename,
+        line: event.lineno,
+      });
+    };
+    const captureRejection = (event: PromiseRejectionEvent) => {
+      writeLog(
+        "error",
+        `Mobile interface promise error: ${String(event.reason?.message || event.reason || "Unknown error")}`,
+      );
+    };
+    const captureClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest("button, a") : null;
+      if (!target) return;
+      const label =
+        target.getAttribute("aria-label") || target.textContent?.replace(/\s+/g, " ").trim();
+      if (label) writeLog("info", `Action: ${label.slice(0, 100)}`);
+    };
+    const captureChange = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const label =
+        target.closest("label")?.querySelector("span")?.textContent?.trim() ||
+        target.name ||
+        "Select";
+      writeLog("info", `${label}: ${target.options[target.selectedIndex]?.text || target.value}`);
+    };
+    window.addEventListener("birchstreet:log", receiveLog);
+    window.addEventListener("error", captureError);
+    window.addEventListener("unhandledrejection", captureRejection);
+    document.addEventListener("click", captureClick, true);
+    document.addEventListener("change", captureChange, true);
+    writeLog("info", "Mobile interface started");
+    return () => {
+      window.removeEventListener("birchstreet:log", receiveLog);
+      window.removeEventListener("error", captureError);
+      window.removeEventListener("unhandledrejection", captureRejection);
+      document.removeEventListener("click", captureClick, true);
+      document.removeEventListener("change", captureChange, true);
+    };
+  }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("outrigger-theme", theme);
   }, [theme]);
   return inside ? (
-    <Shell exit={exit} theme={theme} setTheme={setTheme} />
+    <Shell exit={exit} theme={theme} setTheme={setTheme} user={user} />
   ) : (
-    <Login enter={() => setInside(true)} />
+    <Login
+      enter={(authenticatedUser) => {
+        setUser(authenticatedUser);
+        setInside(true);
+      }}
+    />
   );
 }

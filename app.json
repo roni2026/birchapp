@@ -2,7 +2,7 @@
   "expo": {
     "name": "Outrigger Birchstreet",
     "slug": "outrigger-birchstreet",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./public/outrigger-logo.png",
     "userInterfaceStyle": "automatic",
@@ -10,7 +10,7 @@
     "platforms": ["android"],
     "android": {
       "package": "com.roni2026.outriggerbirchstreet",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./public/outrigger-logo.png",
         "backgroundColor": "#0D1A2D"
