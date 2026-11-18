@@ -15,10 +15,21 @@ for (const match of [...html.matchAll(/<script[^>]+src="([^"]+\.js)"[^>]*><\/scr
   let js = await readFile(join(dist, match[1].replace(/^\//, "")), "utf8");
   const logo = await readFile(join(root, "public", "outrigger-logo.png"));
   const logoUri = `data:image/png;base64,${logo.toString("base64")}`;
-  js = js.replaceAll("/outrigger-logo.png", logoUri).replaceAll("</script>", "<\\/script>");
-  // A replacement callback keeps JavaScript tokens such as `$&` and `$`` literal.
-  // Passing the bundle as a replacement string would expand those tokens into HTML.
-  html = html.replace(match[0], () => `<script type="module">${js}</script>`);
+  js = js.replaceAll("/outrigger-logo.png", logoUri);
+  const encodedJs = Buffer.from(js, "utf8").toString("base64");
+  const bootstrap = `<script>
+document.addEventListener("DOMContentLoaded",function(){
+  var binary=atob("${encodedJs}");
+  var bytes=Uint8Array.from(binary,function(character){return character.charCodeAt(0)});
+  var script=document.createElement("script");
+  script.type="module";
+  script.textContent=new TextDecoder("utf-8").decode(bytes);
+  document.head.appendChild(script);
+},{once:true});
+</script>`;
+  // Keep the app bundle opaque to the HTML parser. This prevents minified source
+  // from being interpreted as markup by Android WebView.
+  html = html.replace(match[0], () => bootstrap);
 }
 
 html = html
@@ -30,6 +41,11 @@ const remainingExternalAssets = html.match(
 );
 if (remainingExternalAssets) {
   throw new Error(`Failed to inline web asset: ${remainingExternalAssets[0]}`);
+}
+
+const closingScriptTags = html.match(/<\/script>/gi)?.length ?? 0;
+if (closingScriptTags !== 1) {
+  throw new Error(`Expected one bootstrap script, found ${closingScriptTags}`);
 }
 
 const target = join(root, "native", "generatedWebApp.ts");
